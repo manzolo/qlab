@@ -1,0 +1,4 @@
+.qlab/
+*.iso
+*.qcow2
+*.img

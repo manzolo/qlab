@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# QLab - Modular CLI for QEMU/KVM educational labs
+# https://github.com/user/qlab
+
+# Resolve the root directory of the project
+QLAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export QLAB_ROOT
+
+# Source all library files
+for lib_file in "$QLAB_ROOT"/lib/*.bash; do
+    # shellcheck source=/dev/null
+    [[ -f "$lib_file" ]] && source "$lib_file"
+done
+
+# --- Command stubs ---
+
+cmd_init() {
+    # TODO: initialize workspace
+    echo "qlab init: not yet implemented"
+}
+
+cmd_status() {
+    # TODO: show workspace status
+    echo "qlab status: not yet implemented"
+}
+
+cmd_reset() {
+    # TODO: reset workspace
+    echo "qlab reset: not yet implemented"
+}
+
+cmd_install() {
+    # TODO: install a plugin
+    echo "qlab install: not yet implemented"
+}
+
+cmd_uninstall() {
+    # TODO: uninstall a plugin
+    echo "qlab uninstall: not yet implemented"
+}
+
+cmd_run() {
+    # TODO: run a plugin
+    echo "qlab run: not yet implemented"
+}
+
+cmd_list() {
+    # TODO: list plugins
+    echo "qlab list: not yet implemented"
+}
+
+# --- Usage ---
+
+usage() {
+    cat <<EOF
+QLab v0.1.0 - Modular CLI for QEMU/KVM educational labs
+
+Usage:
+  qlab <command> [options]
+
+Commands:
+  init          Initialize a new workspace
+  status        Show workspace status
+  reset         Reset the workspace
+  install       Install a plugin
+  uninstall     Uninstall a plugin
+  run           Run a plugin
+  list          List plugins
+
+Options:
+  -h, --help    Show this help message
+
+Examples:
+  qlab init
+  qlab install hello-lab
+  qlab run hello-lab
+  qlab list installed
+EOF
+}
+
+# --- Main argument parser ---
+
+main() {
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 0
+    fi
+
+    case "$1" in
+        init)       shift; cmd_init "$@" ;;
+        status)     shift; cmd_status "$@" ;;
+        reset)      shift; cmd_reset "$@" ;;
+        install)    shift; cmd_install "$@" ;;
+        uninstall)  shift; cmd_uninstall "$@" ;;
+        run)        shift; cmd_run "$@" ;;
+        list)       shift; cmd_list "$@" ;;
+        -h|--help)  usage ;;
+        *)
+            echo "Error: unknown command '$1'"
+            echo ""
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
