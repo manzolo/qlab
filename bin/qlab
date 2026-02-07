@@ -14,21 +14,102 @@ for lib_file in "$QLAB_ROOT"/lib/*.bash; do
     [[ -f "$lib_file" ]] && source "$lib_file"
 done
 
-# --- Command stubs ---
+# Workspace directory
+WORKSPACE_DIR=".qlab"
+
+# Load config if workspace is initialized
+_load_workspace_config() {
+    local conf="$WORKSPACE_DIR/qlab.conf"
+    if [[ -f "$conf" ]]; then
+        load_config "$conf"
+    fi
+}
+
+# --- Commands ---
 
 cmd_init() {
-    # TODO: initialize workspace
-    echo "qlab init: not yet implemented"
+    info "Initializing QLab workspace..."
+    echo ""
+    echo "  QLab creates a local .qlab/ directory to store disks, VM state,"
+    echo "  plugins, images, and cached data. This is your lab workspace."
+    echo ""
+
+    local dirs=("disks" "state" "plugins" "images")
+    for dir in "${dirs[@]}"; do
+        mkdir -p "$WORKSPACE_DIR/$dir"
+        success "Created $WORKSPACE_DIR/$dir"
+    done
+
+    if [[ ! -f "$WORKSPACE_DIR/qlab.conf" ]]; then
+        cp "$QLAB_ROOT/etc/qlab.conf.example" "$WORKSPACE_DIR/qlab.conf"
+        success "Created default config: $WORKSPACE_DIR/qlab.conf"
+    else
+        info "Config already exists: $WORKSPACE_DIR/qlab.conf"
+    fi
+
+    echo ""
+    success "Workspace initialized in $WORKSPACE_DIR/"
+    echo "  Next steps:"
+    echo "    qlab install hello-lab   # install your first lab plugin"
+    echo "    qlab run hello-lab       # run the lab"
 }
 
 cmd_status() {
-    # TODO: show workspace status
-    echo "qlab status: not yet implemented"
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        warn "No workspace found. Run 'qlab init' first."
+        return 1
+    fi
+
+    _load_workspace_config
+
+    echo "${BOLD}QLab Workspace Status${RESET}"
+    echo "  Workspace path:  $(cd "$WORKSPACE_DIR" && pwd)"
+    echo "  Config:          $WORKSPACE_DIR/qlab.conf"
+    echo ""
+
+    # Installed plugins
+    echo "${BOLD}Installed Plugins:${RESET}"
+    local plugin_count=0
+    if [[ -d "$WORKSPACE_DIR/plugins" ]]; then
+        for pdir in "$WORKSPACE_DIR/plugins"/*/; do
+            [[ -d "$pdir" ]] || continue
+            local pname
+            pname="$(basename "$pdir")"
+            local pdesc="(no description)"
+            if [[ -f "$pdir/plugin.conf" ]]; then
+                pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
+            fi
+            echo "  - $pname: $pdesc"
+            plugin_count=$((plugin_count + 1))
+        done
+    fi
+    if [[ $plugin_count -eq 0 ]]; then
+        echo "  (none)"
+    fi
+    echo ""
+
+    # VM state (dummy for now)
+    echo "${BOLD}VM State:${RESET}"
+    echo "  (no VMs running)"
 }
 
 cmd_reset() {
-    # TODO: reset workspace
-    echo "qlab reset: not yet implemented"
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        warn "No workspace found. Nothing to reset."
+        return 0
+    fi
+
+    warn "This will delete all data in $WORKSPACE_DIR/ (disks, plugins, state)."
+    if ! confirm_yesno "Are you sure you want to reset the workspace?"; then
+        info "Reset cancelled."
+        return 0
+    fi
+
+    rm -rf "${WORKSPACE_DIR:?}/"*
+    success "Workspace cleared."
+
+    # Re-initialize
+    cmd_init
 }
 
 cmd_install() {
