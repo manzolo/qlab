@@ -113,23 +113,58 @@ cmd_reset() {
 }
 
 cmd_install() {
-    # TODO: install a plugin
-    echo "qlab install: not yet implemented"
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab install <plugin-name|path|git-url>"
+        return 1
+    fi
+
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        warn "No workspace found. Run 'qlab init' first."
+        return 1
+    fi
+
+    local target="$1"
+
+    # Check if already installed (by name)
+    local pname
+    pname="$(basename "$target" .git)"
+    pname="${pname#qlab-plugin-}"
+    if [[ -d "$PLUGIN_DIR/$pname" ]]; then
+        warn "Plugin '$pname' is already installed."
+        return 0
+    fi
+
+    install_plugin "$target"
 }
 
 cmd_uninstall() {
-    # TODO: uninstall a plugin
-    echo "qlab uninstall: not yet implemented"
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab uninstall <plugin-name>"
+        return 1
+    fi
+    uninstall_plugin "$1"
 }
 
 cmd_run() {
-    # TODO: run a plugin
-    echo "qlab run: not yet implemented"
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab run <plugin-name>"
+        return 1
+    fi
+    run_plugin "$1"
 }
 
 cmd_list() {
-    # TODO: list plugins
-    echo "qlab list: not yet implemented"
+    local sub="${1:-installed}"
+    case "$sub" in
+        installed)
+            echo "${BOLD}Installed Plugins:${RESET}"
+            list_installed_plugins
+            ;;
+        *)
+            error "Unknown list sub-command '$sub'. Use: installed"
+            return 1
+            ;;
+    esac
 }
 
 # --- Usage ---
