@@ -57,8 +57,8 @@ start_vm() {
         -pidfile "$pid_file"
         -daemonize
         -drive "file=$disk_path,format=qcow2,if=virtio"
-        -net "user,hostfwd=tcp::${ssh_port}-:22"
-        -net nic
+        -netdev "user,id=net0,hostfwd=tcp::${ssh_port}-:22"
+        -device "virtio-net-pci,netdev=net0"
     )
 
     # Add KVM if available
