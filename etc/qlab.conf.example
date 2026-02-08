@@ -13,5 +13,5 @@ CLOUD_IMAGE_URL=https://cloud-images.ubuntu.com/minimal/releases/jammy/release/u
 
 # Plugin registry URL
 # Use file:// for a local registry or https:// for a remote one.
-# Example remote: https://youruser.github.io/qlab-registry/index.json
+# Example remote: https://manzolo.github.io/qlab-registry/index.json
 REGISTRY_URL=file://./registry/index.json

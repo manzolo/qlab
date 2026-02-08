@@ -1,6 +1,6 @@
 # QLab
 
-[![CI](https://github.com/user/qlab/actions/workflows/ci.yml/badge.svg)](https://github.com/user/qlab/actions/workflows/ci.yml)
+[![CI](https://github.com/manzolo/qlab/actions/workflows/ci.yml/badge.svg)](https://github.com/manzolo/qlab/actions/workflows/ci.yml)
 
 **Modular CLI tool for QEMU/KVM educational labs.**
 
@@ -38,7 +38,7 @@ Requirements:
 Clone the repository:
 
 ```bash
-git clone https://github.com/user/qlab.git
+git clone https://github.com/manzolo/qlab.git
 cd qlab
 ```
 

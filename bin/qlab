@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # QLab - Modular CLI for QEMU/KVM educational labs
-# https://github.com/user/qlab
+# https://github.com/manzolo/qlab
 
 # Resolve the root directory of the project
 QLAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
