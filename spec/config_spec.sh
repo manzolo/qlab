@@ -31,6 +31,7 @@ CONF
 
   Describe "get_config()"
     setup() {
+      declare -gA CONFIG
       CONFIG=()
       CONFIG[TEST_KEY]="test_value"
     }

@@ -36,6 +36,7 @@ Describe "lib/utils.bash"
     It "rejects empty names"
       When call validate_plugin_name ""
       The status should be failure
+      The stderr should include "Invalid plugin name"
     End
   End
 

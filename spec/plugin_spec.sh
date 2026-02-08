@@ -8,6 +8,7 @@ Describe "Plugin system"
     It "rejects invalid plugin names"
       When call validate_plugin_name "Hello Lab!"
       The status should be failure
+      The stderr should include "Invalid plugin name"
     End
   End
 
@@ -15,6 +16,7 @@ Describe "Plugin system"
     It "is valid JSON"
       When run command jq '.' "$QLAB_ROOT/registry/index.json"
       The status should be success
+      The output should be present
     End
 
     It "contains hello-lab entry"
