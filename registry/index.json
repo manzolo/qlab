@@ -22,5 +22,11 @@
     "description": "Firewall lab with iptables, ufw, and Wireshark using 2 interconnected VMs",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-firewall-lab.git"
+  },
+  {
+    "name": "dns-lab",
+    "description": "DNS lab with BIND9 server and client for learning record types and zone management",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-dns-lab.git"
   }
 ]
