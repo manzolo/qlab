@@ -192,7 +192,38 @@ cmd_stop() {
         error "Usage: qlab stop <plugin-name>"
         return 1
     fi
-    stop_vm "$1"
+
+    local name="$1"
+
+    # Exact match — single VM with this name
+    if [[ -f "$STATE_DIR/${name}.pid" ]]; then
+        stop_vm "$name"
+        return $?
+    fi
+
+    # Prefix match — stop all VMs named <name>-*
+    local matches=()
+    for pidfile in "$STATE_DIR/${name}"-*.pid; do
+        [[ -f "$pidfile" ]] || continue
+        matches+=("$(basename "$pidfile" .pid)")
+    done
+
+    if [[ ${#matches[@]} -eq 0 ]]; then
+        warn "No running VM found for '$name'."
+        return 1
+    fi
+
+    info "Stopping ${#matches[@]} VM(s) matching '$name'..."
+    local failed=0
+    for vm in "${matches[@]}"; do
+        stop_vm "$vm" || failed=$((failed + 1))
+    done
+
+    if [[ $failed -gt 0 ]]; then
+        warn "$failed VM(s) failed to stop."
+        return 1
+    fi
+    return 0
 }
 
 cmd_shell() {
@@ -208,13 +239,41 @@ cmd_log() {
         error "Usage: qlab log <plugin-name>"
         return 1
     fi
-    local log_file="$WORKSPACE_DIR/logs/${1}.log"
-    if [[ ! -f "$log_file" ]]; then
-        warn "No log found for '$1'."
+
+    local name="$1"
+    local log_dir="$WORKSPACE_DIR/logs"
+
+    # Exact match
+    if [[ -f "$log_dir/${name}.log" ]]; then
+        info "Showing log: $log_dir/${name}.log (Ctrl+C to stop)"
+        tail -f "$log_dir/${name}.log"
+        return 0
+    fi
+
+    # Prefix match — find all logs named <name>-*.log
+    local matches=()
+    for logfile in "$log_dir/${name}"-*.log; do
+        [[ -f "$logfile" ]] || continue
+        matches+=("$logfile")
+    done
+
+    if [[ ${#matches[@]} -eq 0 ]]; then
+        warn "No log found for '$name'."
         return 1
     fi
-    info "Showing log: $log_file (Ctrl+C to stop)"
-    tail -f "$log_file"
+
+    if [[ ${#matches[@]} -eq 1 ]]; then
+        info "Showing log: ${matches[0]} (Ctrl+C to stop)"
+        tail -f "${matches[0]}"
+        return 0
+    fi
+
+    # Multiple matches — list them for the user
+    info "Multiple VM logs found for '$name':"
+    for logfile in "${matches[@]}"; do
+        echo "  qlab log $(basename "$logfile" .log)"
+    done
+    return 0
 }
 
 cmd_list() {

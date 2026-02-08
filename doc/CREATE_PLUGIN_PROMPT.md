@@ -259,6 +259,70 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
 - `QLAB_ROOT` — absolute path to the QLab project
 - `WORKSPACE_DIR` — absolute path to `.qlab/` workspace
 
+## Multi-VM Plugins
+
+A single plugin can spawn **multiple named VMs** from its `run.sh`. This is useful for labs that require several interconnected machines (e.g., a RAID lab with separate LVM and ZFS instances).
+
+### Naming convention
+
+Sub-VMs must be named `{plugin_name}-{instance}`, e.g. `raid-lab-lvm`, `raid-lab-zfs`. This allows `qlab stop raid-lab` to stop all sub-VMs via prefix matching.
+
+### Creating extra virtual disks
+
+Use `create_disk` to create additional qcow2 disks, then pass them to `start_vm` as extra `-drive` arguments:
+
+```bash
+create_disk "$LAB_DIR/extra-disk1.qcow2" 5G
+create_disk "$LAB_DIR/extra-disk2.qcow2" 5G
+```
+
+### Passing extra drives to start_vm
+
+Extra arguments that are not `hostfwd=` entries are passed as raw QEMU options:
+
+```bash
+start_vm "$OVERLAY" "$CIDATA_ISO" "$MEMORY" "raid-lab-lvm" 2230 \
+    -drive "file=$LAB_DIR/lvm-disk1.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/lvm-disk2.qcow2,format=qcow2,if=virtio"
+```
+
+### Example: 2-VM plugin with extra disks
+
+```bash
+# In run.sh of a "raid-lab" plugin:
+
+# --- VM 1: LVM instance ---
+for i in 1 2 3 4; do
+    create_disk "$LAB_DIR/lvm-disk${i}.qcow2" 2G
+done
+create_overlay "$CLOUD_IMAGE_FILE" "$LAB_DIR/raid-lab-lvm-disk.qcow2"
+
+start_vm "$LAB_DIR/raid-lab-lvm-disk.qcow2" "$LAB_DIR/cidata-lvm.iso" 1024 "raid-lab-lvm" 2230 \
+    -drive "file=$LAB_DIR/lvm-disk1.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/lvm-disk2.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/lvm-disk3.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/lvm-disk4.qcow2,format=qcow2,if=virtio"
+
+# --- VM 2: ZFS instance ---
+for i in 1 2 3 4; do
+    create_disk "$LAB_DIR/zfs-disk${i}.qcow2" 2G
+done
+create_overlay "$CLOUD_IMAGE_FILE" "$LAB_DIR/raid-lab-zfs-disk.qcow2"
+
+start_vm "$LAB_DIR/raid-lab-zfs-disk.qcow2" "$LAB_DIR/cidata-zfs.iso" 1024 "raid-lab-zfs" 2231 \
+    -drive "file=$LAB_DIR/zfs-disk1.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/zfs-disk2.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/zfs-disk3.qcow2,format=qcow2,if=virtio" \
+    -drive "file=$LAB_DIR/zfs-disk4.qcow2,format=qcow2,if=virtio"
+```
+
+With this naming convention:
+- `qlab stop raid-lab` stops both `raid-lab-lvm` and `raid-lab-zfs`
+- `qlab stop raid-lab-lvm` stops only the LVM instance
+- `qlab shell raid-lab-lvm` connects to the LVM VM
+- `qlab log raid-lab` lists available sub-VM logs
+- `qlab uninstall raid-lab` stops all sub-VMs before removing the plugin
+
 ## Rules
 
 1. **SSH port must be unique** per plugin (2222 is taken by hello-lab)

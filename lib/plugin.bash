@@ -122,11 +122,22 @@ uninstall_plugin() {
         return 0
     fi
 
-    # Stop VM if running
+    # Stop VM if running (exact match)
     if is_vm_running "$pname" 2>/dev/null; then
         info "Stopping running VM for '$pname'..."
         stop_vm "$pname"
     fi
+
+    # Stop any sub-VMs matching <pname>-*
+    for pidfile in "$STATE_DIR/${pname}"-*.pid; do
+        [[ -f "$pidfile" ]] || continue
+        local sub_vm
+        sub_vm="$(basename "$pidfile" .pid)"
+        if is_vm_running "$sub_vm" 2>/dev/null; then
+            info "Stopping sub-VM '$sub_vm'..."
+            stop_vm "$sub_vm"
+        fi
+    done
 
     rm -rf "${PLUGIN_DIR:?}/$pname"
     success "Uninstalled plugin '$pname'."
