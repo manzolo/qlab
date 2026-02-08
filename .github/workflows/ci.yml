@@ -33,3 +33,13 @@ jobs:
       - name: Run ShellSpec tests
         run: |
           ~/.local/lib/shellspec/shellspec --format tap
+
+      - name: Integration test - init, install, list
+        run: |
+          ./bin/qlab init
+          ./bin/qlab install hello-lab
+          ./bin/qlab list installed | grep -q "hello-lab"
+          ./bin/qlab status | grep -q "hello-lab"
+          test -f .qlab/plugins/hello-lab/plugin.conf
+          test -f .qlab/plugins/hello-lab/run.sh
+          jq -e '.name == "hello-lab"' .qlab/plugins/hello-lab/plugin.conf
