@@ -10,5 +10,11 @@
     "description": "Learn to install and configure Nginx as a web server inside a VM",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-nginx-lab.git"
+  },
+  {
+    "name": "raid-lab",
+    "description": "RAID lab with LVM and ZFS virtual machines, each with 4 extra disks",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-raid-lab.git"
   }
 ]
