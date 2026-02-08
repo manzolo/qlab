@@ -46,7 +46,7 @@ install_plugin() {
 
         if [[ ! -f "$PLUGIN_DIR/$pname/plugin.conf" ]]; then
             error "No plugin.conf found after clone. Not a valid plugin."
-            rm -rf "$PLUGIN_DIR/$pname"
+            rm -rf "${PLUGIN_DIR:?}/$pname"
             return 1
         fi
 
