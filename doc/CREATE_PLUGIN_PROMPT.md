@@ -17,6 +17,7 @@ SSH_USER: <username to create in the VM, e.g. labuser>
 SSH_PASS: <password for the user>
 PACKAGES: <comma-separated list of packages to install via cloud-init, e.g. nginx, docker.io>
 MEMORY: <VM memory in MB, e.g. 1024>
+MOTD: <multi-line welcome message shown on SSH login, with lab objectives and useful commands>
 RUNCMD: <list of commands to run on first boot, one per line>
 
 ---
@@ -156,10 +157,22 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
 ssh_pwauth: true
+write_files:
+  - path: /etc/motd
+    content: |
+      ============================================
+        <plugin-name> — QLab Educational VM
+      ============================================
+        <MOTD: objectives and useful commands>
+
+        Credentials: <ssh-user> / <ssh-pass>
+        Exit: type 'exit'
+      ============================================
 packages:
   - <package1>
   - <package2>
 runcmd:
+  - chmod -x /etc/update-motd.d/*
   - echo "=== <PLUGIN_NAME> VM is ready! ==="
   - <additional commands>
 USERDATA
@@ -250,8 +263,9 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
 5. **Plugin name** — lowercase, hyphens/underscores only
 6. **cloud-init user-data** — always include `ssh_pwauth: true` for SSH access
 7. **README.md** — document objectives, credentials, and how to interact
-8. The plugin repo should be named `qlab-plugin-<name>` on GitHub
-9. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
+8. **MOTD** — use `write_files` to create `/etc/motd` with lab name, objectives, and useful commands; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`
+9. The plugin repo should be named `qlab-plugin-<name>` on GitHub
+10. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
 
 ## Example: hello-lab registry entry
 
@@ -296,6 +310,12 @@ SSH_USER: labuser
 SSH_PASS: labpass
 PACKAGES: nginx, curl
 MEMORY: 1024
+MOTD: |
+  Objective: Install and configure Nginx as a web server
+  Useful commands:
+    systemctl status nginx
+    curl http://localhost
+    sudo nano /etc/nginx/sites-available/default
 RUNCMD:
   - systemctl enable nginx
   - echo "<h1>nginx-lab is running!</h1>" > /var/www/html/index.html
