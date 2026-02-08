@@ -15,6 +15,54 @@ check_kvm() {
     return 0
 }
 
+# Check if a TCP port is available (not already listening)
+# Usage: check_port_available port
+check_port_available() {
+    local port="$1"
+    if [[ ! "$port" =~ ^[0-9]+$ ]]; then
+        error "Invalid port number: $port"
+        return 1
+    fi
+    if ss -tlnH sport = :"$port" 2>/dev/null | grep -q .; then
+        return 1
+    fi
+    return 0
+}
+
+# Check all host ports needed by the VM are available
+# Usage: check_all_ports ssh_port netdev_opts
+check_all_ports() {
+    local ssh_port="$1"
+    local netdev_opts="$2"
+    local ports=()
+    local busy_ports=()
+
+    ports+=("$ssh_port")
+
+    # Extract extra host ports from hostfwd entries
+    local remaining="$netdev_opts"
+    while [[ "$remaining" =~ hostfwd=tcp::([0-9]+)-: ]]; do
+        local found_port="${BASH_REMATCH[1]}"
+        if [[ "$found_port" != "$ssh_port" ]]; then
+            ports+=("$found_port")
+        fi
+        remaining="${remaining#*hostfwd=tcp::${found_port}-:}"
+    done
+
+    for port in "${ports[@]}"; do
+        if ! check_port_available "$port"; then
+            busy_ports+=("$port")
+        fi
+    done
+
+    if [[ ${#busy_ports[@]} -gt 0 ]]; then
+        error "The following port(s) are already in use: ${busy_ports[*]}"
+        echo "  Tip: check what is using them with: ss -tlnp sport = :<port>" >&2
+        return 1
+    fi
+    return 0
+}
+
 # Start a VM in background with serial log and SSH port forwarding
 # Usage: start_vm disk_path cdrom_path memory plugin_name ssh_port [extra_args...]
 # Extra args starting with "hostfwd=" are appended to the netdev (same NIC).
@@ -60,6 +108,9 @@ start_vm() {
             qemu_extra_args+=("$arg")
         fi
     done
+
+    # Check that all forwarded host ports are available
+    check_all_ports "$ssh_port" "$netdev_opts" || return 1
 
     local qemu_args=(
         qemu-system-x86_64
