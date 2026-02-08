@@ -17,6 +17,8 @@ check_kvm() {
 
 # Start a VM in background with serial log and SSH port forwarding
 # Usage: start_vm disk_path cdrom_path memory plugin_name ssh_port [extra_args...]
+# Extra args starting with "hostfwd=" are appended to the netdev (same NIC).
+# All other extra args are appended as raw QEMU options.
 start_vm() {
     local disk_path="$1"
     local cdrom_path="${2:-}"
@@ -48,6 +50,17 @@ start_vm() {
         rm -f "$pid_file"
     fi
 
+    # Build netdev options: SSH port forward + any extra hostfwd from extra_args
+    local netdev_opts="user,id=net0,hostfwd=tcp::${ssh_port}-:22"
+    local qemu_extra_args=()
+    for arg in "${extra_args[@]}"; do
+        if [[ "$arg" == hostfwd=* ]]; then
+            netdev_opts+=",$arg"
+        else
+            qemu_extra_args+=("$arg")
+        fi
+    done
+
     local qemu_args=(
         qemu-system-x86_64
         -m "$memory"
@@ -57,7 +70,7 @@ start_vm() {
         -pidfile "$pid_file"
         -daemonize
         -drive "file=$disk_path,format=qcow2,if=virtio"
-        -netdev "user,id=net0,hostfwd=tcp::${ssh_port}-:22"
+        -netdev "$netdev_opts"
         -device "virtio-net-pci,netdev=net0"
     )
 
@@ -71,9 +84,9 @@ start_vm() {
         qemu_args+=(-cdrom "$cdrom_path")
     fi
 
-    # Add any extra arguments
-    if [[ ${#extra_args[@]} -gt 0 ]]; then
-        qemu_args+=("${extra_args[@]}")
+    # Add any extra QEMU arguments (hostfwd entries already merged into netdev)
+    if [[ ${#qemu_extra_args[@]} -gt 0 ]]; then
+        qemu_args+=("${qemu_extra_args[@]}")
     fi
 
     info "Starting VM '$plugin_name' in background..."

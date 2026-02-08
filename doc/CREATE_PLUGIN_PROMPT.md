@@ -232,6 +232,7 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
   - PID saved to `.qlab/state/<plugin_name>.pid`
   - Port saved to `.qlab/state/<plugin_name>.port`
   - KVM if available, software emulation otherwise
+  - Extra args starting with `hostfwd=` are added to the same netdev (e.g. `"hostfwd=tcp::8080-:80"` for HTTP)
 - `stop_vm plugin_name` — graceful stop with timeout, then force kill
 - `is_vm_running plugin_name` — returns 0 if running
 - `check_kvm` — returns 0 if KVM is accessible
