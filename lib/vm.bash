@@ -91,10 +91,13 @@ start_vm() {
         return 1
     }
 
+    # Save SSH port for shell command
+    echo "$ssh_port" > "$STATE_DIR/${plugin_name}.port"
+
     success "VM '$plugin_name' started (PID $(cat "$pid_file"))."
     echo ""
     echo "  Connect via SSH (wait ~30s for boot):"
-    echo "    ssh -o StrictHostKeyChecking=no -p $ssh_port labuser@localhost"
+    echo "    qlab shell $plugin_name"
     echo ""
     echo "  View boot log:"
     echo "    tail -f $log_file"
@@ -137,7 +140,7 @@ stop_vm() {
         kill -9 "$pid" 2>/dev/null || true
     fi
 
-    rm -f "$pid_file"
+    rm -f "$pid_file" "$STATE_DIR/${plugin_name}.port"
     success "VM '$plugin_name' stopped."
 }
 
@@ -155,6 +158,67 @@ is_vm_running() {
         fi
     fi
     return 1
+}
+
+# Open an SSH shell to a running VM
+# Usage: shell_vm plugin_name [ssh_user]
+shell_vm() {
+    local plugin_name="$1"
+    local ssh_user="${2:-labuser}"
+    local pid_file="$STATE_DIR/${plugin_name}.pid"
+    local port_file="$STATE_DIR/${plugin_name}.port"
+
+    if [[ ! -f "$pid_file" ]]; then
+        error "No running VM found for '$plugin_name'."
+        echo "  Start it first: qlab run <plugin>"
+        return 1
+    fi
+
+    local pid
+    pid=$(cat "$pid_file")
+    if ! kill -0 "$pid" 2>/dev/null; then
+        error "VM '$plugin_name' is not running (stale PID)."
+        rm -f "$pid_file" "$port_file"
+        return 1
+    fi
+
+    if [[ ! -f "$port_file" ]]; then
+        error "SSH port not found for '$plugin_name'."
+        return 1
+    fi
+
+    local ssh_port
+    ssh_port=$(cat "$port_file")
+
+    info "Connecting to '$plugin_name' (SSH port $ssh_port, user $ssh_user)..."
+    echo "  Type 'exit' to disconnect."
+    echo ""
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -o LogLevel=ERROR -p "$ssh_port" "${ssh_user}@localhost"
+}
+
+# List all running VMs with their SSH ports
+list_running_vms() {
+    local count=0
+    if [[ -d "$STATE_DIR" ]]; then
+        for pidfile in "$STATE_DIR"/*.pid; do
+            [[ -f "$pidfile" ]] || continue
+            local vm_name pid ssh_port
+            vm_name="$(basename "$pidfile" .pid)"
+            pid=$(cat "$pidfile")
+            if kill -0 "$pid" 2>/dev/null; then
+                ssh_port="?"
+                if [[ -f "$STATE_DIR/${vm_name}.port" ]]; then
+                    ssh_port=$(cat "$STATE_DIR/${vm_name}.port")
+                fi
+                echo "  $vm_name (PID $pid, SSH port $ssh_port)"
+                count=$((count + 1))
+            fi
+        done
+    fi
+    if [[ $count -eq 0 ]]; then
+        echo "  (none)"
+    fi
 }
 
 # Stubs kept for backward compatibility with stub plugins

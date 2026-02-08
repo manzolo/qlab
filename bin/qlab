@@ -94,22 +94,7 @@ cmd_status() {
 
     # VM state
     echo "${BOLD}Running VMs:${RESET}"
-    local vm_count=0
-    if [[ -d "$WORKSPACE_DIR/state" ]]; then
-        for pidfile in "$WORKSPACE_DIR/state"/*.pid; do
-            [[ -f "$pidfile" ]] || continue
-            local vm_name pid
-            vm_name="$(basename "$pidfile" .pid)"
-            pid=$(cat "$pidfile")
-            if kill -0 "$pid" 2>/dev/null; then
-                echo "  - $vm_name (PID $pid)"
-                vm_count=$((vm_count + 1))
-            fi
-        done
-    fi
-    if [[ $vm_count -eq 0 ]]; then
-        echo "  (none)"
-    fi
+    list_running_vms
 }
 
 cmd_reset() {
@@ -200,6 +185,14 @@ cmd_stop() {
     stop_vm "$1"
 }
 
+cmd_shell() {
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab shell <vm-name> [ssh-user]"
+        return 1
+    fi
+    shell_vm "$1" "${2:-labuser}"
+}
+
 cmd_log() {
     if [[ $# -eq 0 ]]; then
         error "Usage: qlab log <plugin-name>"
@@ -249,6 +242,7 @@ Commands:
   install       Install a plugin
   uninstall     Uninstall a plugin
   run           Run a plugin
+  shell         Open SSH shell to a running VM
   stop          Stop a running VM
   log           Show VM boot log (tail -f)
   list          List plugins
@@ -260,6 +254,7 @@ Examples:
   qlab init
   qlab install hello-lab
   qlab run hello-lab
+  qlab shell hello-lab
   qlab stop hello-lab
   qlab log hello-lab
   qlab list installed
@@ -282,6 +277,7 @@ main() {
         install)    shift; cmd_install "$@" ;;
         uninstall)  shift; cmd_uninstall "$@" ;;
         run)        shift; cmd_run "$@" ;;
+        shell)      shift; cmd_shell "$@" ;;
         stop)       shift; cmd_stop "$@" ;;
         log)        shift; cmd_log "$@" ;;
         list)       shift; cmd_list "$@" ;;
