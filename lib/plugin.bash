@@ -122,6 +122,12 @@ uninstall_plugin() {
         return 0
     fi
 
+    # Stop VM if running
+    if is_vm_running "$pname" 2>/dev/null; then
+        info "Stopping running VM for '$pname'..."
+        stop_vm "$pname"
+    fi
+
     rm -rf "${PLUGIN_DIR:?}/$pname"
     success "Uninstalled plugin '$pname'."
 }

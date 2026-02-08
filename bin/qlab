@@ -109,6 +109,16 @@ cmd_reset() {
         return 0
     fi
 
+    # Stop all running VMs first
+    if [[ -d "$WORKSPACE_DIR/state" ]]; then
+        for pidfile in "$WORKSPACE_DIR/state"/*.pid; do
+            [[ -f "$pidfile" ]] || continue
+            local vm_name
+            vm_name="$(basename "$pidfile" .pid)"
+            stop_vm "$vm_name" 2>/dev/null || true
+        done
+    fi
+
     rm -rf "${WORKSPACE_DIR:?}/"*
     success "Workspace cleared."
 
