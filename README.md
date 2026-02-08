@@ -1,8 +1,11 @@
 # QLab
 
 [![CI](https://github.com/manzolo/qlab/actions/workflows/ci.yml/badge.svg)](https://github.com/manzolo/qlab/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Bash 4.0+](https://img.shields.io/badge/Bash-4.0%2B-green.svg)](https://www.gnu.org/software/bash/)
+[![Platform: Linux](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)](https://www.kernel.org/)
 
-**Modular CLI tool for QEMU/KVM educational labs.**
+> **Modular CLI tool for QEMU/KVM educational labs.**
 
 QLab makes it easy to create, share, and run hands-on virtualization labs. Each lab is a plugin that sets up a QEMU virtual machine with a specific configuration, letting students learn by doing.
 
@@ -17,22 +20,15 @@ QLab makes it easy to create, share, and run hands-on virtualization labs. Each 
 - Configurable plugin registry (local or remote)
 - Pure Bash — no frameworks, no compilation needed
 
-## Dependencies
-
-Install on Ubuntu/Debian:
+## Quick Start
 
 ```bash
-sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
+mkdir my-lab && cd my-lab
+qlab init
+qlab install hello-lab
+qlab run hello-lab
 ```
-
-Requirements:
-- QEMU (>= 8.0) with KVM support
-- qemu-img (from qemu-utils)
-- genisoimage (for cloud-init ISO generation)
-- jq (>= 1.6)
-- bash (>= 4.0)
-- git
-- curl
 
 ## Installation
 
@@ -132,6 +128,23 @@ my-plugin/
 
 Plugins can use QLab core functions by sourcing `$QLAB_ROOT/lib/*.bash`.
 
+## Dependencies
+
+Install on Ubuntu/Debian:
+
+```bash
+sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
+```
+
+Requirements:
+- QEMU (>= 8.0) with KVM support
+- qemu-img (from qemu-utils)
+- genisoimage (for cloud-init ISO generation)
+- jq (>= 1.6)
+- bash (>= 4.0)
+- git
+- curl
+
 ## Troubleshooting
 
 ### KVM not available
@@ -152,6 +165,8 @@ QEMU will fall back to software emulation if KVM is unavailable (much slower).
 ```bash
 sudo apt install genisoimage
 ```
+
+---
 
 ## License
 
