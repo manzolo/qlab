@@ -46,7 +46,7 @@ check_all_ports() {
         if [[ "$found_port" != "$ssh_port" ]]; then
             ports+=("$found_port")
         fi
-        remaining="${remaining#*hostfwd=tcp::${found_port}-:}"
+        remaining="${remaining#*hostfwd=tcp::"${found_port}"-:}"
     done
 
     for port in "${ports[@]}"; do
