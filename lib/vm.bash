@@ -6,8 +6,8 @@ LOG_DIR="${WORKSPACE_DIR:-.qlab}/logs"
 
 # Check if KVM acceleration is available
 check_kvm() {
-    if [[ ! -e /dev/kvm ]]; then
-        warn "/dev/kvm not found. KVM acceleration is not available."
+    if [[ ! -w /dev/kvm ]]; then
+        warn "/dev/kvm not accessible. KVM acceleration is not available."
         echo "  Tip: run 'kvm-ok' or check that virtualization is enabled in BIOS."
         echo "  QEMU will fall back to software emulation (much slower)."
         return 1
