@@ -34,7 +34,7 @@ cmd_init() {
     echo "  plugins, images, and cached data. This is your lab workspace."
     echo ""
 
-    local dirs=("disks" "state" "plugins" "images")
+    local dirs=("disks" "state" "plugins" "images" "cache")
     for dir in "${dirs[@]}"; do
         mkdir -p "$WORKSPACE_DIR/$dir"
         success "Created $WORKSPACE_DIR/$dir"
@@ -123,6 +123,8 @@ cmd_install() {
         return 1
     fi
 
+    _load_workspace_config
+
     local target="$1"
 
     # Check if already installed (by name)
@@ -132,6 +134,24 @@ cmd_install() {
     if [[ -d "$PLUGIN_DIR/$pname" ]]; then
         warn "Plugin '$pname' is already installed."
         return 0
+    fi
+
+    # If target is not a path or URL, try looking it up in the registry
+    if [[ ! -d "$target" && "$target" != *.git && "$target" != https://* ]]; then
+        # First try bundled plugins (handled by install_plugin)
+        if [[ -d "$QLAB_ROOT/plugins/$target" ]]; then
+            install_plugin "$target"
+            return $?
+        fi
+
+        # Try registry lookup
+        local git_url
+        git_url=$(get_plugin_git_url "$target" 2>/dev/null || true)
+        if [[ -n "$git_url" ]]; then
+            info "Found '$target' in registry: $git_url"
+            install_plugin "$git_url"
+            return $?
+        fi
     fi
 
     install_plugin "$target"
@@ -160,8 +180,13 @@ cmd_list() {
             echo "${BOLD}Installed Plugins:${RESET}"
             list_installed_plugins
             ;;
+        available)
+            _load_workspace_config
+            echo "${BOLD}Available Plugins (from registry):${RESET}"
+            list_available_plugins
+            ;;
         *)
-            error "Unknown list sub-command '$sub'. Use: installed"
+            error "Unknown list sub-command '$sub'. Use: installed, available"
             return 1
             ;;
     esac
@@ -193,6 +218,7 @@ Examples:
   qlab install hello-lab
   qlab run hello-lab
   qlab list installed
+  qlab list available
 EOF
 }
 

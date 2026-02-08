@@ -10,3 +10,8 @@ DEFAULT_CPUS=1
 
 # Ubuntu cloud image URL
 CLOUD_IMAGE_URL=https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img
+
+# Plugin registry URL
+# Use file:// for a local registry or https:// for a remote one.
+# Example remote: https://youruser.github.io/qlab-registry/index.json
+REGISTRY_URL=file://./registry/index.json

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "hello-lab",
+    "description": "Basic VM boot lab with cloud-init",
+    "version": "1.0",
+    "git_url": "https://github.com/user/qlab-plugin-hello-lab.git"
+  }
+]
