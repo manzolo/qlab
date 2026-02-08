@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck jq
+
+      - name: Install ShellSpec
+        run: |
+          curl -fsSL https://git.io/shellspec | sh -s -- --yes
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck bin/qlab lib/*.bash
+
+      - name: Run ShellSpec tests
+        run: |
+          ~/.local/lib/shellspec/shellspec --format tap
