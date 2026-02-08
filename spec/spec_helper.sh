@@ -1,7 +1,8 @@
 # shellspec spec_helper
 
 # Set QLAB_ROOT to the project root
-QLAB_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# SHELLSPEC_PROJECT_ROOT is provided by shellspec
+QLAB_ROOT="${SHELLSPEC_PROJECT_ROOT:-.}"
 export QLAB_ROOT
 
 # Source library files

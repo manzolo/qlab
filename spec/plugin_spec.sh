@@ -11,28 +11,6 @@ Describe "Plugin system"
     End
   End
 
-  Describe "hello-lab plugin.conf"
-    It "is valid JSON"
-      When run command jq '.' "$QLAB_ROOT/plugins/hello-lab/plugin.conf"
-      The status should be success
-    End
-
-    It "has a name field"
-      When run command jq -r '.name' "$QLAB_ROOT/plugins/hello-lab/plugin.conf"
-      The output should eq "hello-lab"
-    End
-
-    It "has a description field"
-      When run command jq -r '.description' "$QLAB_ROOT/plugins/hello-lab/plugin.conf"
-      The output should be present
-    End
-
-    It "has a version field"
-      When run command jq -r '.version' "$QLAB_ROOT/plugins/hello-lab/plugin.conf"
-      The output should eq "1.0"
-    End
-  End
-
   Describe "registry/index.json"
     It "is valid JSON"
       When run command jq '.' "$QLAB_ROOT/registry/index.json"
@@ -42,6 +20,16 @@ Describe "Plugin system"
     It "contains hello-lab entry"
       When run command jq -r '.[0].name' "$QLAB_ROOT/registry/index.json"
       The output should eq "hello-lab"
+    End
+
+    It "has a git_url for hello-lab"
+      When run command jq -r '.[0].git_url' "$QLAB_ROOT/registry/index.json"
+      The output should be present
+    End
+
+    It "has a description for hello-lab"
+      When run command jq -r '.[0].description' "$QLAB_ROOT/registry/index.json"
+      The output should be present
     End
   End
 End

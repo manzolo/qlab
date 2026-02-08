@@ -40,8 +40,10 @@ Describe "lib/utils.bash"
   End
 
   Describe "info()"
+    # Wrap to avoid collision with system 'info' command
+    qlab_info() { info "$@"; }
     It "outputs message with INFO prefix"
-      When call info "test message"
+      When call qlab_info "test message"
       The output should include "[INFO]"
       The output should include "test message"
     End
@@ -56,8 +58,10 @@ Describe "lib/utils.bash"
   End
 
   Describe "error()"
+    # Wrap to avoid collision with shellspec internal 'error'
+    qlab_error() { error "$@"; }
     It "outputs message with ERROR prefix to stderr"
-      When call error "error message"
+      When call qlab_error "error message"
       The stderr should include "[ERROR]"
       The stderr should include "error message"
     End
