@@ -158,7 +158,7 @@ users:
     shell: /bin/bash
 ssh_pwauth: true
 write_files:
-  - path: /etc/motd
+  - path: /etc/motd.raw
     content: |
       ============================================
         <plugin-name> — QLab Educational VM
@@ -173,6 +173,11 @@ packages:
   - <package2>
 runcmd:
   - chmod -x /etc/update-motd.d/*
+  - sed -i 's/^#\?PrintMotd.*/PrintMotd yes/' /etc/ssh/sshd_config
+  - sed -i 's/^session.*pam_motd.*/# &/' /etc/pam.d/sshd
+  - printf '%b' "$(cat /etc/motd.raw)" > /etc/motd
+  - rm -f /etc/motd.raw
+  - systemctl restart sshd
   - echo "=== <PLUGIN_NAME> VM is ready! ==="
   - <additional commands>
 USERDATA
@@ -263,7 +268,7 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
 5. **Plugin name** — lowercase, hyphens/underscores only
 6. **cloud-init user-data** — always include `ssh_pwauth: true` for SSH access
 7. **README.md** — document objectives, credentials, and how to interact
-8. **MOTD** — use `write_files` to create `/etc/motd` with lab name, objectives, and useful commands; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`
+8. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands (ANSI escape codes allowed); in `runcmd`, convert it with `printf '%b' "$(cat /etc/motd.raw)" > /etc/motd` then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`
 9. The plugin repo should be named `qlab-plugin-<name>` on GitHub
 10. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
 
