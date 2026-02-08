@@ -36,16 +36,36 @@ Requirements:
 
 ## Installation
 
-Clone the repository:
+### Quick install (recommended)
+
+One-liner that installs dependencies and adds `qlab` to your PATH:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
+```
+
+Without root, the installer falls back to a user-local install (`~/.local/bin`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | bash
+```
+
+### Install from a clone
 
 ```bash
 git clone https://github.com/manzolo/qlab.git
 cd qlab
+sudo ./install.sh
 ```
 
-Optionally add `bin/` to your PATH:
+### Manual installation
+
+If you prefer to set things up yourself:
 
 ```bash
+git clone https://github.com/manzolo/qlab.git
+cd qlab
+sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
 export PATH="$PWD/bin:$PATH"
 ```
 

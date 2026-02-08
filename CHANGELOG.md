@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- `install.sh` automated installer script (one-liner `curl | bash` or from clone)
+- Automatic dependency installation on Debian/Ubuntu
+- System-wide (`/usr/local/bin`) or user-local (`~/.local/bin`) installation
+- Idempotent: safe to run multiple times
+- `--skip-deps` flag to skip dependency installation
+
 ## v0.1.1 - Automated SSH Key Management
 
 ### Added
