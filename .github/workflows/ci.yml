@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck jq
+          sudo apt-get install -y shellcheck jq qemu-system-x86 qemu-utils genisoimage sshpass
 
       - name: Install ShellSpec
         run: |
@@ -43,3 +43,32 @@ jobs:
           test -f .qlab/plugins/hello-lab/plugin.conf
           test -f .qlab/plugins/hello-lab/run.sh
           jq -e '.name == "hello-lab"' .qlab/plugins/hello-lab/plugin.conf
+
+      - name: Integration test - run VM and SSH (no KVM, software emulation)
+        timeout-minutes: 10
+        run: |
+          ./bin/qlab run hello-lab
+
+          echo "Waiting for VM to boot (software emulation, may take a few minutes)..."
+          for i in $(seq 1 60); do
+            if sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o LogLevel=ERROR -p 2222 labuser@localhost "echo OK" 2>/dev/null; then
+              echo "VM is ready after ~${i}0 seconds"
+              break
+            fi
+            echo "  Attempt $i/60 - VM not ready yet..."
+            sleep 10
+          done
+
+          echo "--- Verifying VM ---"
+          sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR -p 2222 labuser@localhost "hostname && uname -a"
+
+          echo "--- Checking status ---"
+          ./bin/qlab status | grep -q "hello-lab"
+
+          echo "--- Stopping VM ---"
+          ./bin/qlab stop hello-lab
+
+          echo "--- Verifying VM stopped ---"
+          ./bin/qlab status | grep -q "(none)"
