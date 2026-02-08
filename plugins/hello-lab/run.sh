@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# hello-lab run script — boots a real VM with cloud-init via serial console
+# hello-lab run script — boots a VM in background with SSH access
 
 set -euo pipefail
 
+PLUGIN_NAME="hello-lab"
+SSH_PORT=2222
+
 echo "============================================="
-echo "  hello-lab: Boot a VM with cloud-init"
+echo "  hello-lab: Boot a VM with cloud-init + SSH"
 echo "============================================="
 echo ""
 echo "  This lab demonstrates:"
 echo "    1. Downloading a Ubuntu cloud image"
 echo "    2. Creating a cloud-init ISO for user provisioning"
 echo "    3. Creating an overlay disk (copy-on-write)"
-echo "    4. Booting the VM with QEMU serial console"
+echo "    4. Booting the VM in background with SSH access"
 echo ""
 
 # Source QLab core libraries
@@ -65,7 +68,7 @@ info "Step 2: Cloud-init configuration"
 echo ""
 echo "  cloud-init is the standard for initializing cloud instances."
 echo "  We create two files:"
-echo "    - user-data: defines users, packages, commands"
+echo "    - user-data: defines users, packages, SSH config"
 echo "    - meta-data: instance identification"
 echo ""
 
@@ -78,10 +81,10 @@ users:
     lock_passwd: false
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
+ssh_pwauth: true
 runcmd:
   - echo "=== hello-lab VM is ready! ==="
-  - echo "Login with: labuser / labpass"
-  - echo "To exit QEMU: press Ctrl+A then X"
+  - echo "SSH is enabled — connect with: ssh -p 2222 labuser@localhost"
 USERDATA
 
 cat > "$LAB_DIR/meta-data" <<METADATA
@@ -127,32 +130,31 @@ fi
 create_overlay "$CLOUD_IMAGE_FILE" "$OVERLAY_DISK"
 echo ""
 
-# Step 5: Boot the VM
-info "Step 5: Booting VM"
+# Step 5: Boot the VM in background
+info "Step 5: Starting VM in background"
 echo ""
-echo "  The VM will boot with serial console (text mode)."
-echo "  Wait for the login prompt, then login with:"
+echo "  The VM will run in background with:"
+echo "    - Serial output logged to .qlab/logs/$PLUGIN_NAME.log"
+echo "    - SSH access on port $SSH_PORT"
+echo ""
+
+start_vm "$OVERLAY_DISK" "$CIDATA_ISO" "$MEMORY" "$PLUGIN_NAME" "$SSH_PORT"
+
+echo ""
+echo "============================================="
+echo "  hello-lab: VM is booting"
+echo "============================================="
+echo ""
+echo "  Credentials:"
 echo "    Username: labuser"
 echo "    Password: labpass"
 echo ""
-echo "  To exit QEMU: press Ctrl+A then X"
+echo "  Connect via SSH (wait ~30s for boot to complete):"
+echo "    ssh -o StrictHostKeyChecking=no -p $SSH_PORT labuser@localhost"
 echo ""
-echo "  Starting in 3 seconds..."
-sleep 3
-
-start_vm "$OVERLAY_DISK" "$CIDATA_ISO" "$MEMORY"
-
-# Post-run summary
+echo "  View boot log:"
+echo "    tail -f .qlab/logs/$PLUGIN_NAME.log"
 echo ""
-echo "============================================="
-echo "  hello-lab: Session ended"
-echo "============================================="
-echo ""
-echo "  Summary:"
-echo "    - You booted a real VM using QEMU"
-echo "    - cloud-init provisioned the user 'labuser'"
-echo "    - The overlay disk preserved the base image"
-echo ""
-echo "  To run again: qlab run hello-lab"
-echo "  To reset disk: delete $OVERLAY_DISK"
+echo "  Stop VM:"
+echo "    qlab stop $PLUGIN_NAME"
 echo "============================================="

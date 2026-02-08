@@ -101,7 +101,10 @@ run_plugin() {
 
     info "Running plugin '$pname'..."
     echo ""
-    (cd "$PLUGIN_DIR/$pname" && bash run.sh)
+    # Export absolute WORKSPACE_DIR so the plugin uses the project-level workspace
+    local abs_workspace
+    abs_workspace="$(cd "$WORKSPACE_DIR" && pwd)"
+    (cd "$PLUGIN_DIR/$pname" && WORKSPACE_DIR="$abs_workspace" bash run.sh)
 }
 
 uninstall_plugin() {

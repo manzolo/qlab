@@ -4,8 +4,12 @@ set -euo pipefail
 # QLab - Modular CLI for QEMU/KVM educational labs
 # https://github.com/manzolo/qlab
 
-# Resolve the root directory of the project
-QLAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve the root directory of the project (follows symlinks)
+QLAB_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$QLAB_SOURCE" ]]; do
+    QLAB_SOURCE="$(readlink "$QLAB_SOURCE")"
+done
+QLAB_ROOT="$(cd "$(dirname "$QLAB_SOURCE")/.." && pwd)"
 export QLAB_ROOT
 
 # Source all library files
@@ -34,7 +38,7 @@ cmd_init() {
     echo "  plugins, images, and cached data. This is your lab workspace."
     echo ""
 
-    local dirs=("disks" "state" "plugins" "images" "cache")
+    local dirs=("disks" "state" "plugins" "images" "cache" "logs")
     for dir in "${dirs[@]}"; do
         mkdir -p "$WORKSPACE_DIR/$dir"
         success "Created $WORKSPACE_DIR/$dir"
@@ -88,9 +92,24 @@ cmd_status() {
     fi
     echo ""
 
-    # VM state (dummy for now)
-    echo "${BOLD}VM State:${RESET}"
-    echo "  (no VMs running)"
+    # VM state
+    echo "${BOLD}Running VMs:${RESET}"
+    local vm_count=0
+    if [[ -d "$WORKSPACE_DIR/state" ]]; then
+        for pidfile in "$WORKSPACE_DIR/state"/*.pid; do
+            [[ -f "$pidfile" ]] || continue
+            local vm_name pid
+            vm_name="$(basename "$pidfile" .pid)"
+            pid=$(cat "$pidfile")
+            if kill -0 "$pid" 2>/dev/null; then
+                echo "  - $vm_name (PID $pid)"
+                vm_count=$((vm_count + 1))
+            fi
+        done
+    fi
+    if [[ $vm_count -eq 0 ]]; then
+        echo "  (none)"
+    fi
 }
 
 cmd_reset() {
@@ -173,6 +192,28 @@ cmd_run() {
     run_plugin "$1"
 }
 
+cmd_stop() {
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab stop <plugin-name>"
+        return 1
+    fi
+    stop_vm "$1"
+}
+
+cmd_log() {
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab log <plugin-name>"
+        return 1
+    fi
+    local log_file="$WORKSPACE_DIR/logs/${1}.log"
+    if [[ ! -f "$log_file" ]]; then
+        warn "No log found for '$1'."
+        return 1
+    fi
+    info "Showing log: $log_file (Ctrl+C to stop)"
+    tail -f "$log_file"
+}
+
 cmd_list() {
     local sub="${1:-installed}"
     case "$sub" in
@@ -208,6 +249,8 @@ Commands:
   install       Install a plugin
   uninstall     Uninstall a plugin
   run           Run a plugin
+  stop          Stop a running VM
+  log           Show VM boot log (tail -f)
   list          List plugins
 
 Options:
@@ -217,6 +260,8 @@ Examples:
   qlab init
   qlab install hello-lab
   qlab run hello-lab
+  qlab stop hello-lab
+  qlab log hello-lab
   qlab list installed
   qlab list available
 EOF
@@ -237,6 +282,8 @@ main() {
         install)    shift; cmd_install "$@" ;;
         uninstall)  shift; cmd_uninstall "$@" ;;
         run)        shift; cmd_run "$@" ;;
+        stop)       shift; cmd_stop "$@" ;;
+        log)        shift; cmd_log "$@" ;;
         list)       shift; cmd_list "$@" ;;
         -h|--help)  usage ;;
         *)
