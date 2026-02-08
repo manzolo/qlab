@@ -104,7 +104,12 @@ run_plugin() {
     # Export absolute WORKSPACE_DIR so the plugin uses the project-level workspace
     local abs_workspace
     abs_workspace="$(cd "$WORKSPACE_DIR" && pwd)"
-    (cd "$PLUGIN_DIR/$pname" && WORKSPACE_DIR="$abs_workspace" bash run.sh)
+    
+    # Export SSH public key for cloud-init provisioning
+    local pub_key
+    pub_key=$(get_ssh_public_key)
+
+    (cd "$PLUGIN_DIR/$pname" && WORKSPACE_DIR="$abs_workspace" QLAB_SSH_PUB_KEY="$pub_key" bash run.sh)
 }
 
 uninstall_plugin() {

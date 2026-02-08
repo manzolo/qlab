@@ -156,18 +156,27 @@ users:
     lock_passwd: false
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
+    ssh_authorized_keys:
+      - "__QLAB_SSH_PUB_KEY__"
 ssh_pwauth: true
 write_files:
   - path: /etc/motd.raw
     content: |
-      ============================================
-        <plugin-name> — QLab Educational VM
-      ============================================
-        <MOTD: objectives and useful commands>
+      \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
+        \033[1;32m<plugin-name>\033[0m — \033[1mQLab Educational VM\033[0m
+      \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
 
-        Credentials: <ssh-user> / <ssh-pass>
-        Exit: type 'exit'
-      ============================================
+        \033[1;33mObjectives:\033[0m
+          • <bulleted list of lab goals>
+
+        \033[1;33mUseful commands:\033[0m
+          \033[0;32m<cmd1>\033[0m             <description>
+          \033[0;32m<cmd2>\033[0m             <description>
+
+        \033[1;33mCredentials:\033[0m  \033[1;36m<user>\033[0m / \033[1;36m<pass>\033[0m
+        \033[1;33mExit:\033[0m         type '\033[1;31mexit\033[0m'
+
+      \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
 packages:
   - <package1>
   - <package2>
@@ -175,12 +184,15 @@ runcmd:
   - chmod -x /etc/update-motd.d/*
   - sed -i 's/^#\?PrintMotd.*/PrintMotd yes/' /etc/ssh/sshd_config
   - sed -i 's/^session.*pam_motd.*/# &/' /etc/pam.d/sshd
-  - printf '%b' "$(cat /etc/motd.raw)" > /etc/motd
+  - printf '%b\n' "$(cat /etc/motd.raw)" > /etc/motd
   - rm -f /etc/motd.raw
   - systemctl restart sshd
   - echo "=== <PLUGIN_NAME> VM is ready! ==="
   - <additional commands>
 USERDATA
+
+# Inject the workspace SSH public key
+sed -i "s|__QLAB_SSH_PUB_KEY__|${QLAB_SSH_PUB_KEY:-}|g" "$LAB_DIR/user-data"
 
 cat > "$LAB_DIR/meta-data" <<METADATA
 instance-id: ${PLUGIN_NAME}-001
@@ -258,6 +270,7 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
 ### Key variables available in run.sh
 - `QLAB_ROOT` — absolute path to the QLab project
 - `WORKSPACE_DIR` — absolute path to `.qlab/` workspace
+- `QLAB_SSH_PUB_KEY` — the workspace SSH public key for `cloud-init` provisioning
 
 ## Multi-VM Plugins
 
@@ -330,9 +343,9 @@ With this naming convention:
 3. **Educational echoes** — explain what each step does and why
 4. **set -euo pipefail** — always, in both install.sh and run.sh
 5. **Plugin name** — lowercase, hyphens/underscores only
-6. **cloud-init user-data** — always include `ssh_pwauth: true` for SSH access
+6. **cloud-init user-data** — always include `ssh_authorized_keys` with a placeholder (e.g. `__QLAB_SSH_PUB_KEY__`) and replace it with `sed` after creation using `${QLAB_SSH_PUB_KEY:-}`. Use **quoted heredocs** (`<<'USERDATA'`) to protect MOTD color codes and VM-side commands from host expansion.
 7. **README.md** — document objectives, credentials, and how to interact
-8. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands (ANSI escape codes allowed); in `runcmd`, convert it with `printf '%b' "$(cat /etc/motd.raw)" > /etc/motd` then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`
+8. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands. Use ANSI escape codes (e.g. `\033[1;32m`) for colors. In `runcmd`, convert it with `printf '%b\n' "$(cat /etc/motd.raw)" > /etc/motd` (the `\n` is needed because `$()` strips trailing newlines) then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`.
 9. The plugin repo should be named `qlab-plugin-<name>` on GitHub
 10. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
 

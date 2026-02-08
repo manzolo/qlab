@@ -55,6 +55,7 @@ Best practices:
 - Print educational messages explaining what each step does
 - Use `create_overlay()` instead of modifying base images directly
 - Use `start_vm()` to boot VMs with proper arguments
+- Always include `${QLAB_SSH_PUB_KEY:-}` in `cloud-init`'s `ssh_authorized_keys` to support `qlab shell`
 
 ## Core Utilities
 
@@ -73,6 +74,8 @@ Plugins can use these functions from `$QLAB_ROOT/lib/`:
 | `create_overlay(base, overlay)` | Create COW overlay disk |
 | `start_vm(disk, cdrom, memory)` | Start a VM with QEMU |
 | `check_kvm()` | Check if KVM is available |
+| `ensure_ssh_key()` | Generate workspace SSH key if missing |
+| `get_ssh_public_key()` | Return workspace public key content |
 
 ## Security
 
@@ -110,3 +113,4 @@ shellcheck bin/qlab lib/*.bash
 - Use `[[ ]]` instead of `[ ]` for conditionals
 - Use meaningful function and variable names
 - Add educational echo statements in plugins
+- Use `${QLAB_SSH_PUB_KEY:-}` for SSH key provisioning in `run.sh`

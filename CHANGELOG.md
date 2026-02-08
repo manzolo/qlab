@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.1.1 - Automated SSH Key Management
+
+### Added
+
+- Automated workspace SSH key generation in `.qlab/ssh/`
+- Workspace-wide SSH public key exported to plugins via `QLAB_SSH_PUB_KEY`
+- Passwordless login support for all laboratory VMs via `qlab shell`
+- Automatic SSH key provisioning in `hello-lab`, `raid-lab`, and `nginx-lab`
+- Guidelines for SSH key management in `doc/CREATE_PLUGIN_PROMPT.md`
+
+### Fixed
+
+- Improved SSH connection reliability with custom options (`StrictHostKeyChecking=no`, etc.)
+
+
 ## v0.1.0 - Initial MVP
 
 ### Added

@@ -3,6 +3,26 @@
 
 STATE_DIR="${WORKSPACE_DIR:-.qlab}/state"
 LOG_DIR="${WORKSPACE_DIR:-.qlab}/logs"
+SSH_DIR="${WORKSPACE_DIR:-.qlab}/ssh"
+SSH_KEY="$SSH_DIR/qlab_id_rsa"
+
+# Ensure workspace-specific SSH key pair exists
+ensure_ssh_key() {
+    if [[ ! -f "$SSH_KEY" ]]; then
+        mkdir -p "$SSH_DIR"
+        info "Generating QLab SSH key pair for workspace..."
+        ssh-keygen -t rsa -b 4096 -f "$SSH_KEY" -N "" -q
+        success "SSH key generated: $SSH_KEY"
+    fi
+}
+
+# Return the content of the public key
+get_ssh_public_key() {
+    ensure_ssh_key
+    if [[ -f "${SSH_KEY}.pub" ]]; then
+        cat "${SSH_KEY}.pub"
+    fi
+}
 
 # Check if KVM acceleration is available
 check_kvm() {
@@ -257,8 +277,18 @@ shell_vm() {
     info "Connecting to '$plugin_name' (SSH port $ssh_port, user $ssh_user)..."
     echo "  Type 'exit' to disconnect."
     echo ""
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        -o LogLevel=ERROR -p "$ssh_port" "${ssh_user}@localhost"
+
+    local ssh_opts=(
+        -o StrictHostKeyChecking=no
+        -o UserKnownHostsFile=/dev/null
+        -o LogLevel=ERROR
+    )
+
+    if [[ -f "$SSH_KEY" ]]; then
+        ssh_opts+=(-i "$SSH_KEY")
+    fi
+
+    ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost"
 }
 
 # List all running VMs with their SSH ports

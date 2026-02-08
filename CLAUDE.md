@@ -38,18 +38,18 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 |------|---------------|-------------|
 | `utils.bash` | Colors, `info`/`warn`/`error`/`success`, `confirm_yesno`, `validate_plugin_name`, `check_dependency` | `GREEN`, `YELLOW`, `RED`, `BOLD`, `RESET` |
 | `config.bash` | INI-style config loader | `declare -A CONFIG` |
-| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms` | `STATE_DIR`, `LOG_DIR` |
+| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms`, `ensure_ssh_key`, `get_ssh_public_key` | `STATE_DIR`, `LOG_DIR`, `SSH_DIR`, `SSH_KEY` |
 | `disk.bash` | `create_disk`, `create_overlay` (qcow2 COW) | — |
 | `plugin.bash` | `install_plugin`, `run_plugin`, `uninstall_plugin`, `list_installed_plugins` | `PLUGIN_DIR` |
 | `registry.bash` | `load_registry`, `get_plugin_git_url`, `list_available_plugins` | `REGISTRY_DATA`, `REGISTRY_CACHE_DIR` |
 
 **Plugin resolution order** in `cmd_install`: bundled (`plugins/`) → registry lookup → treat as path/git-URL.
 
-**Workspace (`.qlab/`):** Created by `qlab init`. Contains `disks/`, `state/`, `plugins/`, `images/`, `cache/`, `logs/`, and `qlab.conf` (copied from `etc/qlab.conf.example`).
+**Workspace (`.qlab/`):** Created by `qlab init`. Contains `disks/`, `state/`, `plugins/`, `images/`, `cache/`, `logs/`, `ssh/` (auto-generated key pair), and `qlab.conf` (copied from `etc/qlab.conf.example`).
 
-**Plugin structure:** Each plugin is a directory with `plugin.conf` (JSON metadata), `run.sh` (required entry point), and optionally `install.sh`. Plugins source `$QLAB_ROOT/lib/*.bash` for core functions. `run.sh` executes in a subshell with `WORKSPACE_DIR` set to the absolute workspace path.
+**Plugin structure:** Each plugin is a directory with `plugin.conf` (JSON metadata), `run.sh` (required entry point), and optionally `install.sh`. Plugins source `$QLAB_ROOT/lib/*.bash` for core functions. `run.sh` executes in a subshell with `WORKSPACE_DIR` set to the absolute workspace path and `QLAB_SSH_PUB_KEY` set to the workspace SSH public key for cloud-init provisioning.
 
-**VM lifecycle:** `start_vm` launches QEMU daemonized with `-pidfile` and serial log. PID goes to `.qlab/state/<name>.pid`, SSH port to `.qlab/state/<name>.port`. `stop_vm` does graceful SIGTERM with 10s timeout, then SIGKILL. Extra `hostfwd=` args in `start_vm` are merged into the same netdev.
+**VM lifecycle:** `start_vm` launches QEMU daemonized with `-pidfile` and serial log. PID goes to `.qlab/state/<name>.pid`, SSH port to `.qlab/state/<name>.port`. `stop_vm` does graceful SIGTERM with 10s timeout, then SIGKILL. Extra `hostfwd=` args in `start_vm` are merged into the same netdev. `shell_vm` connects via SSH using the workspace key (`.qlab/ssh/qlab_id_rsa`) for passwordless login.
 
 **Registry (`registry/index.json`):** JSON array of `{name, description, version, git_url}`. Config key `REGISTRY_URL` supports `file://` (local) or `https://` (remote with cache fallback).
 

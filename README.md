@@ -8,11 +8,12 @@ QLab makes it easy to create, share, and run hands-on virtualization labs. Each 
 
 ## Features
 
+- Automated SSH key management and passwordless login
 - Workspace management (`init`, `status`, `reset`)
 - Plugin system for modular labs (install, run, uninstall)
 - Cloud-init integration for automatic VM provisioning
 - Overlay disks (copy-on-write) to preserve base images
-- Serial console (nographic) for lightweight interaction
+- Serial console (nographic) or SSH (`qlab shell`) access
 - Configurable plugin registry (local or remote)
 - Pure Bash — no frameworks, no compilation needed
 
@@ -73,6 +74,15 @@ qlab run hello-lab
 ```
 
 Boots a VM with cloud-init and serial console. Login with `labuser` / `labpass`.
+You can view the boot log with `qlab log hello-lab`.
+
+### Connect to a lab VM
+
+```bash
+qlab shell hello-lab
+```
+
+Opens a passwordless SSH session to the running VM using automatically generated workspace keys.
 
 ### List plugins
 

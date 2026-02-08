@@ -26,6 +26,7 @@ _load_workspace_config() {
     local conf="$WORKSPACE_DIR/qlab.conf"
     if [[ -f "$conf" ]]; then
         load_config "$conf"
+        ensure_ssh_key
     fi
 }
 
@@ -53,6 +54,7 @@ cmd_init() {
 
     echo ""
     success "Workspace initialized in $WORKSPACE_DIR/"
+    ensure_ssh_key
     echo "  Next steps:"
     echo "    qlab install hello-lab   # install your first lab plugin"
     echo "    qlab run hello-lab       # run the lab"
