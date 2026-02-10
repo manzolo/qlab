@@ -166,6 +166,31 @@ QEMU will fall back to software emulation if KVM is unavailable (much slower).
 sudo apt install genisoimage
 ```
 
+## Available Plugins
+
+QLab ships with a growing registry of ready-to-use lab plugins. Install any of them with `qlab install <name>`:
+
+| Plugin | Description |
+|--------|-------------|
+| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | Basic VM boot lab with cloud-init |
+| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | Nginx web server installation and configuration |
+| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | Apache web server with SSL/TLS and virtual hosts |
+| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | Docker containers and Docker Compose |
+| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | MySQL/MariaDB database management, users, and backups |
+| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | SSH hardening with fail2ban, port knocking, and key auth |
+| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | LVM with extra virtual disks for PV, VG, and LV management |
+| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | LVM & ZFS disk management with 4 extra disks per VM |
+| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | DNS & BIND9 server/client for record types and zone management |
+| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | Firewall with iptables, ufw, and traffic analysis (2 VMs) |
+| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | VPN with WireGuard and OpenVPN (server + client VMs) |
+| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | Systemd service management, unit files, timers, and journald |
+
+You can also list them from the CLI:
+
+```bash
+qlab list available
+```
+
 ---
 
 ## License
