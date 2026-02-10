@@ -28,5 +28,41 @@
     "description": "DNS lab with BIND9 server and client for learning record types and zone management",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-dns-lab.git"
+  },
+  {
+    "name": "apache-lab",
+    "description": "Apache web server lab with SSL/TLS and virtual hosts",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-apache-lab.git"
+  },
+  {
+    "name": "docker-lab",
+    "description": "Docker containers and Docker Compose lab",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-docker-lab.git"
+  },
+  {
+    "name": "lvm-lab",
+    "description": "LVM lab with extra virtual disks for PV, VG, and LV management",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-lvm-lab.git"
+  },
+  {
+    "name": "mysql-lab",
+    "description": "MySQL/MariaDB lab for database management, users, and backups",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-mysql-lab.git"
+  },
+  {
+    "name": "ssh-lab",
+    "description": "SSH hardening lab with fail2ban, port knocking, and key authentication",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-ssh-lab.git"
+  },
+  {
+    "name": "vpn-lab",
+    "description": "VPN lab with WireGuard and OpenVPN using server and client VMs",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-vpn-lab.git"
   }
 ]
