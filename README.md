@@ -103,6 +103,22 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 
 List them from the CLI: `qlab list available`
 
+## Runtime Resource Overrides
+
+You can override the default RAM and disk size for any plugin at runtime using environment variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `QLAB_MEMORY` | VM RAM in MB | `4096` |
+| `QLAB_DISK_SIZE` | Overlay disk size | `30G` |
+
+```bash
+# Run docker-lab with 4 GB RAM and 30 GB disk
+QLAB_MEMORY=4096 QLAB_DISK_SIZE=30G qlab run docker-lab
+```
+
+Priority: environment variable > `qlab.conf` (`DEFAULT_MEMORY`) > plugin default.
+
 ## Creating Your Own Plugin
 
 See [doc/CREATE_PLUGIN_PROMPT.md](doc/CREATE_PLUGIN_PROMPT.md) for a step-by-step guide to building a new lab plugin.
