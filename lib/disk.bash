@@ -16,10 +16,13 @@ create_disk() {
 }
 
 # Create an overlay (copy-on-write) disk backed by a base image
-# Usage: create_overlay backing_file overlay_path
+# Usage: create_overlay backing_file overlay_path [size]
+# If size is given the overlay is resized after creation (e.g. "20G").
+# cloud-init growpart will auto-expand the guest partition on first boot.
 create_overlay() {
     local backing_file="$1"
     local overlay_path="$2"
+    local size="${3:-}"
 
     check_dependency qemu-img || return 1
 
@@ -36,6 +39,12 @@ create_overlay() {
     echo "  Backing: $abs_backing"
     echo "  Overlay: $overlay_path"
     qemu-img create -f qcow2 -b "$abs_backing" -F qcow2 "$overlay_path"
+
+    if [[ -n "$size" ]]; then
+        info "Resizing overlay to $size..."
+        qemu-img resize "$overlay_path" "$size"
+    fi
+
     success "Overlay disk created: $overlay_path"
 }
 
