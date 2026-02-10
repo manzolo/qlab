@@ -11,14 +11,13 @@ QLab makes it easy to create, share, and run hands-on virtualization labs. Each 
 
 ## Features
 
-- Automated SSH key management and passwordless login
-- Workspace management (`init`, `status`, `reset`)
-- Plugin system for modular labs (install, run, uninstall)
-- Cloud-init integration for automatic VM provisioning
-- Overlay disks (copy-on-write) to preserve base images
-- Serial console (nographic) or SSH (`qlab shell`) access
-- Configurable plugin registry (local or remote)
-- Pure Bash — no frameworks, no compilation needed
+- **Plugin-based labs** — each lab is a self-contained plugin you can install, run, and share
+- **Cloud-init provisioning** — VMs boot fully configured, no manual setup
+- **Overlay disks** — copy-on-write snapshots keep base images untouched
+- **Automatic SSH keys** — passwordless login, generated per workspace
+- **Serial console or SSH** — connect via `qlab shell` or nographic console
+- **Plugin registry** — install labs from a local or remote registry
+- **Pure Bash** — no frameworks, no compilation, just shell
 
 ## Quick Start
 
@@ -32,21 +31,7 @@ qlab run hello-lab
 
 ## Installation
 
-### Quick install (recommended)
-
-One-liner that installs dependencies and adds `qlab` to your PATH:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
-```
-
-Without root, the installer falls back to a user-local install (`~/.local/bin`):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | bash
-```
-
-### Install from a clone
+### From source
 
 ```bash
 git clone https://github.com/manzolo/qlab.git
@@ -54,9 +39,7 @@ cd qlab
 sudo ./install.sh
 ```
 
-### Manual installation
-
-If you prefer to set things up yourself:
+### Manual
 
 ```bash
 git clone https://github.com/manzolo/qlab.git
@@ -65,106 +48,39 @@ sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
 export PATH="$PWD/bin:$PATH"
 ```
 
-## Usage
-
-### Initialize a workspace
+Without root, the install script falls back to a user-local install (`~/.local/bin`):
 
 ```bash
-qlab init
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | bash
 ```
 
-Creates a `.qlab/` directory with subdirectories for disks, images, plugins, state, and cache.
+## Updating
 
-### Install a lab plugin
+The install script handles updates automatically (`git pull --ff-only` if QLab is already installed). Just re-run:
 
 ```bash
-qlab install hello-lab
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
 ```
 
-Installs from bundled plugins, a local path, a git URL, or the registry.
+Or from a local clone: `git pull` inside the qlab directory.
 
-### Run a lab
+## Commands
 
-```bash
-qlab run hello-lab
-```
+| Command | Description |
+|---------|-------------|
+| `qlab init` | Initialize a new workspace |
+| `qlab install <name>` | Install a plugin (bundled, registry, or git URL) |
+| `qlab run <name>` | Run a lab (boots VM with cloud-init) |
+| `qlab shell <name>` | SSH into a running VM |
+| `qlab stop <name>` | Stop a running VM |
+| `qlab reset [name]` | Reset a single plugin, or the entire workspace |
+| `qlab log <name>` | Tail the VM boot log |
+| `qlab list installed` | Show installed plugins |
+| `qlab list available` | Show registry plugins |
+| `qlab status` | Show workspace and VM status |
+| `qlab uninstall <name>` | Remove a plugin |
 
-Boots a VM with cloud-init and serial console. Login with `labuser` / `labpass`.
-You can view the boot log with `qlab log hello-lab`.
-
-### Connect to a lab VM
-
-```bash
-qlab shell hello-lab
-```
-
-Opens a passwordless SSH session to the running VM using automatically generated workspace keys.
-
-### List plugins
-
-```bash
-qlab list installed     # show installed plugins
-qlab list available     # show plugins from registry
-```
-
-### Reset workspace
-
-```bash
-qlab reset
-```
-
-Deletes all workspace data and re-initializes.
-
-## Plugin Architecture
-
-Each plugin is a directory containing:
-
-```
-my-plugin/
-├── plugin.conf    # JSON metadata (name, description, version)
-├── install.sh     # Runs on install (setup, dependency checks)
-└── run.sh         # Main entry point (lab execution)
-```
-
-Plugins can use QLab core functions by sourcing `$QLAB_ROOT/lib/*.bash`.
-
-## Dependencies
-
-Install on Ubuntu/Debian:
-
-```bash
-sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
-```
-
-Requirements:
-- QEMU (>= 8.0) with KVM support
-- qemu-img (from qemu-utils)
-- genisoimage (for cloud-init ISO generation)
-- jq (>= 1.6)
-- bash (>= 4.0)
-- git
-- curl
-
-## Troubleshooting
-
-### KVM not available
-
-```bash
-kvm-ok
-```
-
-If KVM is not available:
-- Enable virtualization in BIOS/UEFI (Intel VT-x or AMD-V)
-- Load the KVM module: `sudo modprobe kvm_intel` or `sudo modprobe kvm_amd`
-- Add your user to the `kvm` group: `sudo usermod -aG kvm $USER`
-
-QEMU will fall back to software emulation if KVM is unavailable (much slower).
-
-### genisoimage not found
-
-```bash
-sudo apt install genisoimage
-```
+Default VM credentials: `labuser` / `labpass`. Each lab uses overlay disks so base images are never modified. SSH keys are auto-generated per workspace for passwordless login.
 
 ## Available Plugins
 
@@ -185,14 +101,25 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | VPN with WireGuard and OpenVPN (server + client VMs) |
 | [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | Systemd service management, unit files, timers, and journald |
 
-You can also list them from the CLI:
+List them from the CLI: `qlab list available`
 
-```bash
-qlab list available
+## Creating Your Own Plugin
+
+See [doc/CREATE_PLUGIN_PROMPT.md](doc/CREATE_PLUGIN_PROMPT.md) for a step-by-step guide to building a new lab plugin.
+
+## Plugin Structure
+
+Each plugin is a directory containing:
+
 ```
+my-plugin/
+├── plugin.conf    # JSON metadata (name, description, version)
+├── install.sh     # Runs on install (setup, dependency checks)
+└── run.sh         # Main entry point (lab execution)
+```
+
+Plugins can use QLab core functions by sourcing `$QLAB_ROOT/lib/*.bash`.
 
 ---
 
-## License
-
-MIT
+**License:** [MIT](LICENSE) | [Contributing](CONTRIBUTING.md) | [Changelog](CHANGELOG.md)

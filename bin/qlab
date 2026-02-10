@@ -105,6 +105,47 @@ cmd_reset() {
         return 0
     fi
 
+    # Per-plugin reset
+    if [[ $# -gt 0 ]]; then
+        _load_workspace_config
+
+        local pname="$1"
+        validate_plugin_name "$pname" || return 1
+
+        # Check plugin is installed
+        if [[ ! -d "$PLUGIN_DIR/$pname" ]]; then
+            error "Plugin '$pname' is not installed."
+            return 1
+        fi
+
+        # Stop VM(s): exact match
+        if is_vm_running "$pname"; then
+            stop_vm "$pname"
+        fi
+        # Stop sub-VMs: prefix match (<pname>-*)
+        for pid_file in "$STATE_DIR/${pname}-"*.pid; do
+            [[ -f "$pid_file" ]] || continue
+            local vm_name
+            vm_name=$(basename "$pid_file" .pid)
+            stop_vm "$vm_name" 2>/dev/null || true
+        done
+
+        # Clean state files (prefix match covers multi-VM)
+        rm -f "$STATE_DIR/${pname}".pid "$STATE_DIR/${pname}".port
+        rm -f "$STATE_DIR/${pname}-"*.pid "$STATE_DIR/${pname}-"*.port
+        rm -f "$LOG_DIR/${pname}".log
+        rm -f "$LOG_DIR/${pname}-"*.log
+
+        # Delete lab artifacts (overlay disk, cidata, cloud-init files)
+        if [[ -d "$PLUGIN_DIR/$pname/lab" ]]; then
+            rm -rf "$PLUGIN_DIR/$pname/lab"
+        fi
+
+        success "Plugin '$pname' has been reset. Run 'qlab run $pname' to start fresh."
+        return 0
+    fi
+
+    # Full workspace reset (no arguments)
     warn "This will delete all data in $WORKSPACE_DIR/ (disks, plugins, state)."
     if ! confirm_yesno "Are you sure you want to reset the workspace?"; then
         info "Reset cancelled."
@@ -309,7 +350,7 @@ Usage:
 Commands:
   init          Initialize a new workspace
   status        Show workspace status
-  reset         Reset the workspace
+  reset [name]  Reset workspace, or a single plugin
   install       Install a plugin
   uninstall     Uninstall a plugin
   run           Run a plugin
@@ -328,6 +369,7 @@ Examples:
   qlab shell hello-lab
   qlab stop hello-lab
   qlab log hello-lab
+  qlab reset hello-lab
   qlab list installed
   qlab list available
 EOF
