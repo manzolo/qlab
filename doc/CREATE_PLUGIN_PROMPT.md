@@ -1,14 +1,14 @@
 # Prompt for creating a new QLab plugin
 
-Use this prompt with an AI assistant to generate a new QLab plugin. Copy the entire content below and replace the placeholders in the "User Input" section.
+Copy everything between the two horizontal lines below, fill in the **User Input** section with your values, and send it to an AI assistant. See the [Example usage](#example-usage) section at the bottom for a filled-in sample.
 
 ---
 
-## Prompt
-
-```
 Create a new QLab plugin with the following details:
 
+## User Input
+
+```
 PLUGIN_NAME: <name>
 DESCRIPTION: <what the lab teaches>
 CLOUD_IMAGE: <URL of the cloud image to use, or "same as hello-lab" for Ubuntu 22.04 minimal>
@@ -19,8 +19,9 @@ PACKAGES: <comma-separated list of packages to install via cloud-init, e.g. ngin
 MEMORY: <VM memory in MB, e.g. 1024>
 MOTD: <multi-line welcome message shown on SSH login, with lab objectives and useful commands>
 RUNCMD: <list of commands to run on first boot, one per line>
+```
 
----
+Use the architecture reference below to generate the plugin files.
 
 ## QLab Plugin Architecture
 
@@ -374,7 +375,6 @@ qlab install ./<plugin-dir>     # install from local path
 qlab run <plugin-name>
 qlab shell <plugin-name>
 qlab stop <plugin-name>
-```
 ```
 
 ---
