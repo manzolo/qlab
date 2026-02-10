@@ -133,6 +133,7 @@ cmd_reset() {
         # Clean state files (prefix match covers multi-VM)
         rm -f "$STATE_DIR/${pname}".pid "$STATE_DIR/${pname}".port
         rm -f "$STATE_DIR/${pname}-"*.pid "$STATE_DIR/${pname}-"*.port
+        # shellcheck disable=SC2153  # LOG_DIR is defined in lib/vm.bash
         rm -f "$LOG_DIR/${pname}".log
         rm -f "$LOG_DIR/${pname}-"*.log
 
