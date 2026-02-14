@@ -38,7 +38,7 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 |------|---------------|-------------|
 | `utils.bash` | Colors, `info`/`warn`/`error`/`success`, `confirm_yesno`, `validate_plugin_name`, `check_dependency` | `GREEN`, `YELLOW`, `RED`, `BOLD`, `RESET` |
 | `config.bash` | INI-style config loader | `declare -A CONFIG` |
-| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms`, `ensure_ssh_key`, `get_ssh_public_key` | `STATE_DIR`, `LOG_DIR`, `SSH_DIR`, `SSH_KEY` |
+| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms`, `ensure_ssh_key`, `get_ssh_public_key`, `scan_plugin_ports`, `find_next_free_port`, `check_port_conflicts` | `STATE_DIR`, `LOG_DIR`, `SSH_DIR`, `SSH_KEY` |
 | `disk.bash` | `create_disk`, `create_overlay` (qcow2 COW) | — |
 | `plugin.bash` | `install_plugin`, `run_plugin`, `uninstall_plugin`, `list_installed_plugins` | `PLUGIN_DIR` |
 | `registry.bash` | `load_registry`, `get_plugin_git_url`, `list_available_plugins` | `REGISTRY_DATA`, `REGISTRY_CACHE_DIR` |
@@ -57,12 +57,19 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 
 ShellSpec tests live in `spec/`. The spec helper (`spec/spec_helper.sh`) sources all `lib/*.bash`. ShellSpec config is in `.shellspec` (requires spec_helper, uses bash shell). shellcheck and shellspec are not installed locally — they run only in CI.
 
+**Local integration test** (`tests/test_registry_plugins.sh`): installs every plugin from the registry, boots its VM(s), verifies SSH + cloud-init, stops and uninstalls. Not run in CI.
+
+```bash
+bash tests/test_registry_plugins.sh          # full test (install + VM + SSH)
+bash tests/test_registry_plugins.sh --no-vm  # quick test (install/uninstall only)
+```
+
 ## Conventions
 
 - All scripts use `set -euo pipefail`
 - Use `[[ ]]` for conditionals, quote all variable expansions
 - Plugin names: lowercase, digits, hyphens, underscores only (`^[a-z0-9_-]+$`)
-- Each plugin gets a unique SSH port (hello-lab uses 2222)
+- Each plugin gets a unique SSH port (use `qlab ports` to find the next free one)
 - Always use overlay disks — never modify base cloud images directly
 - Plugin git repos are named `qlab-plugin-<name>` on GitHub
 - New plugins can be generated using the prompt template in `doc/CREATE_PLUGIN_PROMPT.md`

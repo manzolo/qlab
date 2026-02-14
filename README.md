@@ -77,6 +77,7 @@ Or from a local clone: `git pull` inside the qlab directory.
 | `qlab log <name>` | Tail the VM boot log |
 | `qlab list installed` | Show installed plugins |
 | `qlab list available` | Show registry plugins |
+| `qlab ports` | Show SSH port map and detect conflicts |
 | `qlab status` | Show workspace and VM status |
 | `qlab uninstall <name>` | Remove a plugin |
 
