@@ -320,6 +320,57 @@ cmd_log() {
     return 0
 }
 
+cmd_ports() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        warn "No workspace found. Run 'qlab init' first."
+        return 1
+    fi
+
+    _load_workspace_config
+
+    echo "${BOLD}SSH Port Map${RESET}"
+    echo ""
+
+    # Collect declared ports
+    local entries=()
+    local -A port_count=()
+    while IFS=: read -r plugin var port; do
+        entries+=("${port}:${plugin}:${var}")
+        port_count["$port"]=$(( ${port_count["$port"]:-0} + 1 ))
+    done < <(scan_plugin_ports)
+
+    if [[ ${#entries[@]} -eq 0 ]]; then
+        echo "  No plugins installed."
+        echo ""
+        echo "  Install a plugin first: qlab install hello-lab"
+        return 0
+    fi
+
+    # Sort by port number
+    IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
+
+    echo "${BOLD}Declared ports (installed plugins):${RESET}"
+    for entry in "${sorted_entries[@]}"; do
+        IFS=: read -r port plugin var <<< "$entry"
+        local conflict=""
+        if [[ ${port_count["$port"]} -gt 1 ]]; then
+            conflict="  ${RED}[CONFLICT]${RESET}"
+        fi
+        printf "  %-6s %s (%s)%s\n" "$port" "$plugin" "$var" "$conflict"
+    done
+    echo ""
+
+    # Running VMs
+    echo "${BOLD}Running VMs:${RESET}"
+    list_running_vms
+    echo ""
+
+    # Next available port
+    local next_port
+    next_port=$(find_next_free_port)
+    echo "${BOLD}Next available port:${RESET}  $next_port"
+}
+
 cmd_list() {
     local sub="${1:-installed}"
     case "$sub" in
@@ -359,6 +410,7 @@ Commands:
   stop          Stop a running VM
   log           Show VM boot log (tail -f)
   list          List plugins
+  ports         Show SSH port map and conflicts
 
 Options:
   -h, --help    Show this help message
@@ -395,6 +447,7 @@ main() {
         stop)       shift; cmd_stop "$@" ;;
         log)        shift; cmd_log "$@" ;;
         list)       shift; cmd_list "$@" ;;
+        ports)      shift; cmd_ports "$@" ;;
         -h|--help)  usage ;;
         *)
             echo "Error: unknown command '$1'"

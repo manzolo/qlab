@@ -315,6 +315,67 @@ list_running_vms() {
     fi
 }
 
+# Scan all installed plugin run.sh files for SSH port declarations
+# Outputs lines in format: plugin:variable:port
+scan_plugin_ports() {
+    local plugin_dir="${WORKSPACE_DIR:-.qlab}/plugins"
+    [[ -d "$plugin_dir" ]] || return 0
+
+    for pdir in "$plugin_dir"/*/; do
+        [[ -d "$pdir" ]] || continue
+        local run_sh="$pdir/run.sh"
+        [[ -f "$run_sh" ]] || continue
+        local pname
+        pname="$(basename "$pdir")"
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^([A-Z_]*SSH_PORT)=([0-9]+) ]]; then
+                echo "${pname}:${BASH_REMATCH[1]}:${BASH_REMATCH[2]}"
+            fi
+        done < "$run_sh"
+    done
+}
+
+# Find the next free SSH port starting from 2222
+# A port is free if not declared by any plugin and not listening on the system
+find_next_free_port() {
+    local port=2222
+    local -A used_ports=()
+
+    # Collect all declared ports
+    while IFS=: read -r _plugin _var p; do
+        used_ports["$p"]=1
+    done < <(scan_plugin_ports)
+
+    while true; do
+        if [[ -z "${used_ports[$port]:-}" ]] && check_port_available "$port"; then
+            echo "$port"
+            return 0
+        fi
+        port=$((port + 1))
+    done
+}
+
+# Check for port conflicts among installed plugins
+# Prints conflicts to stderr, returns 1 if any found
+check_port_conflicts() {
+    local -A port_map=()
+    local has_conflict=0
+
+    while IFS=: read -r plugin var port; do
+        if [[ -n "${port_map[$port]:-}" ]]; then
+            if [[ $has_conflict -eq 0 ]]; then
+                echo "Port conflicts detected:" >&2
+            fi
+            echo "  Port $port: ${port_map[$port]} and ${plugin} (${var})" >&2
+            has_conflict=1
+        else
+            port_map["$port"]="${plugin} (${var})"
+        fi
+    done < <(scan_plugin_ports)
+
+    return "$has_conflict"
+}
+
 # Stubs kept for backward compatibility with stub plugins
 start_vm_stub() {
     info "--- VM Start (stub) ---"

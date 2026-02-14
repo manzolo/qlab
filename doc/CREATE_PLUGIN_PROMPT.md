@@ -12,7 +12,7 @@ Create a new QLab plugin with the following details:
 PLUGIN_NAME: <name>
 DESCRIPTION: <what the lab teaches>
 CLOUD_IMAGE: <URL of the cloud image to use, or "same as hello-lab" for Ubuntu 22.04 minimal>
-SSH_PORT: <port number, must be unique per plugin, e.g. 2223, 2224...>
+SSH_PORT: <port, run 'qlab ports' to find the next free one>
 SSH_USER: <username to create in the VM, e.g. labuser>
 SSH_PASS: <password for the user>
 PACKAGES: <comma-separated list of packages to install via cloud-init, e.g. nginx, docker.io>

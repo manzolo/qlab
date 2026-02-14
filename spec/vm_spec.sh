@@ -31,4 +31,79 @@ Describe "lib/vm.bash"
       The stderr should include "already in use"
     End
   End
+
+  Describe "scan_plugin_ports()"
+    setup() {
+      TEST_WS=$(mktemp -d)
+      WORKSPACE_DIR="$TEST_WS"
+      mkdir -p "$TEST_WS/plugins/fake-lab"
+      cat > "$TEST_WS/plugins/fake-lab/run.sh" <<'SCRIPT'
+SSH_PORT=2250
+SCRIPT
+    }
+    cleanup() {
+      rm -rf "$TEST_WS"
+    }
+    Before 'setup'
+    After 'cleanup'
+
+    It "finds SSH_PORT declarations in plugin run.sh"
+      When call scan_plugin_ports
+      The output should include "fake-lab:SSH_PORT:2250"
+      The status should be success
+    End
+  End
+
+  Describe "find_next_free_port()"
+    setup() {
+      TEST_WS=$(mktemp -d)
+      WORKSPACE_DIR="$TEST_WS"
+      mkdir -p "$TEST_WS/plugins/a-lab"
+      cat > "$TEST_WS/plugins/a-lab/run.sh" <<'SCRIPT'
+SSH_PORT=2222
+SCRIPT
+      mkdir -p "$TEST_WS/plugins/b-lab"
+      cat > "$TEST_WS/plugins/b-lab/run.sh" <<'SCRIPT'
+SSH_PORT=2223
+SCRIPT
+    }
+    cleanup() {
+      rm -rf "$TEST_WS"
+    }
+    Before 'setup'
+    After 'cleanup'
+
+    It "returns the first unused port"
+      When call find_next_free_port
+      The output should eq "2224"
+      The status should be success
+    End
+  End
+
+  Describe "check_port_conflicts()"
+    setup() {
+      TEST_WS=$(mktemp -d)
+      WORKSPACE_DIR="$TEST_WS"
+      mkdir -p "$TEST_WS/plugins/x-lab"
+      cat > "$TEST_WS/plugins/x-lab/run.sh" <<'SCRIPT'
+SSH_PORT=2250
+SCRIPT
+      mkdir -p "$TEST_WS/plugins/y-lab"
+      cat > "$TEST_WS/plugins/y-lab/run.sh" <<'SCRIPT'
+SSH_PORT=2250
+SCRIPT
+    }
+    cleanup() {
+      rm -rf "$TEST_WS"
+    }
+    Before 'setup'
+    After 'cleanup'
+
+    It "detects duplicate ports"
+      When call check_port_conflicts
+      The stderr should include "Port conflicts detected"
+      The stderr should include "2250"
+      The status should be failure
+    End
+  End
 End
