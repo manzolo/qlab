@@ -108,10 +108,10 @@ wait_for_cloud_init() {
 }
 
 # Extract SSH ports for a given plugin from qlab ports output
-# Outputs one "port:varname" per line
+# Only matches lines in the "Declared ports" section: "  2222   plugin-name (VAR)"
 get_plugin_ports() {
     local pname="$1"
-    "$QLAB" ports 2>/dev/null | grep "$pname" | awk '{print $1}'
+    "$QLAB" ports 2>/dev/null | awk -v plugin="$pname" '$1 ~ /^[0-9]+$/ && $2 == plugin {print $1}'
 }
 
 # --- Dependency check ---
