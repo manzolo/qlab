@@ -70,5 +70,11 @@
     "description": "Systemd lab for service management, unit files, timers, and journald",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-systemd-lab.git"
+  },
+  {
+    "name": "dhcp-lab",
+    "description": "DHCP lab with server and client VMs to learn dynamic IP addressing",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-dhcp-lab.git"
   }
 ]

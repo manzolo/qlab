@@ -100,6 +100,7 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | Firewall with iptables, ufw, and traffic analysis (2 VMs) |
 | [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | VPN with WireGuard and OpenVPN (server + client VMs) |
 | [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | Systemd service management, unit files, timers, and journald |
+| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | DHCP server/client lab for dynamic IP addressing (2 VMs) |
 
 List them from the CLI: `qlab list available`
 
