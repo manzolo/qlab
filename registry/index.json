@@ -76,5 +76,11 @@
     "description": "DHCP lab with server and client VMs to learn dynamic IP addressing",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-dhcp-lab.git"
+  },
+  {
+    "name": "ldap-lab",
+    "description": "LDAP lab with OpenLDAP server, phpLDAPadmin, and client for directory services",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-ldap-lab.git"
   }
 ]
