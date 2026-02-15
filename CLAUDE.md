@@ -38,10 +38,10 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 |------|---------------|-------------|
 | `utils.bash` | Colors, `info`/`warn`/`error`/`success`, `confirm_yesno`, `validate_plugin_name`, `check_dependency` | `GREEN`, `YELLOW`, `RED`, `BOLD`, `RESET` |
 | `config.bash` | INI-style config loader | `declare -A CONFIG` |
-| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms`, `ensure_ssh_key`, `get_ssh_public_key`, `allocate_port`, `check_all_ports`, `wait_for_vm`, `start_vm_or_fail`, `check_host_resources`, `register_vm_cleanup` | `STATE_DIR`, `LOG_DIR`, `SSH_DIR`, `SSH_KEY`, `LAST_SSH_PORT` |
+| `vm.bash` | `start_vm`, `stop_vm`, `shell_vm`, `is_vm_running`, `check_kvm`, `list_running_vms`, `ensure_ssh_key`, `get_ssh_public_key`, `allocate_port`, `check_all_ports`, `wait_for_vm`, `wait_for_cloud_init`, `start_vm_or_fail`, `check_host_resources`, `register_vm_cleanup` | `STATE_DIR`, `LOG_DIR`, `SSH_DIR`, `SSH_KEY`, `LAST_SSH_PORT` |
 | `disk.bash` | `create_disk`, `create_overlay` (qcow2 COW) | — |
 | `plugin.bash` | `install_plugin`, `run_plugin`, `uninstall_plugin`, `list_installed_plugins` | `PLUGIN_DIR` |
-| `registry.bash` | `load_registry`, `get_plugin_git_url`, `list_available_plugins` | `REGISTRY_DATA`, `REGISTRY_CACHE_DIR` |
+| `registry.bash` | `load_registry`, `get_plugin_git_url`, `get_plugin_version`, `list_available_plugins` | `REGISTRY_DATA`, `REGISTRY_CACHE_DIR` |
 
 **Plugin resolution order** in `cmd_install`: bundled (`plugins/`) → registry lookup → treat as path/git-URL. When installing from the registry, the plugin version from `index.json` is used to checkout the corresponding git tag (`v<version>`) after cloning.
 
