@@ -82,5 +82,11 @@
     "description": "LDAP lab with OpenLDAP server, phpLDAPadmin, and client for directory services",
     "version": "1.2",
     "git_url": "https://github.com/manzolo/qlab-plugin-ldap-lab.git"
+  },
+  {
+    "name": "mail-lab",
+    "description": "Mail server lab with Postfix and Dovecot, send/receive mail between 2 clients",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-mail-lab.git"
   }
 ]

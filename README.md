@@ -103,6 +103,7 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | Systemd service management, unit files, timers, and journald |
 | [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | DHCP server/client lab for dynamic IP addressing (2 VMs) |
 | [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | LDAP with OpenLDAP, phpLDAPadmin, and client for directory services |
+| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | Mail server with Postfix and Dovecot, send/receive between 2 clients (3 VMs) |
 
 List them from the CLI: `qlab list available`
 
