@@ -88,6 +88,13 @@ get_plugin_git_url() {
     echo "$REGISTRY_DATA" | jq -r --arg name "$name" '.[] | select(.name == $name) | .git_url // empty'
 }
 
+# Get the version for a plugin from the registry
+get_plugin_version() {
+    local name="$1"
+    load_registry || return 1
+    echo "$REGISTRY_DATA" | jq -r --arg name "$name" '.[] | select(.name == $name) | .version // empty'
+}
+
 # List all available plugins in the registry
 list_available_plugins() {
     load_registry || return 1

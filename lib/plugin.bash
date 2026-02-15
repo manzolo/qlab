@@ -5,6 +5,7 @@ PLUGIN_DIR="${WORKSPACE_DIR:-".qlab"}/plugins"
 
 install_plugin() {
     local name_or_path="$1"
+    local version="${2:-}"
 
     # If it's a local directory path
     if [[ -d "$name_or_path" ]]; then
@@ -44,6 +45,21 @@ install_plugin() {
             return 1
         }
 
+        # Checkout specific version tag if provided
+        if [[ -n "$version" ]]; then
+            local tag="v${version}"
+            if (cd "$PLUGIN_DIR/$pname" && git tag -l "$tag" | grep -q .); then
+                info "Checking out version $tag..."
+                (cd "$PLUGIN_DIR/$pname" && git checkout -q "$tag") || {
+                    error "Failed to checkout tag '$tag'"
+                    rm -rf "${PLUGIN_DIR:?}/$pname"
+                    return 1
+                }
+            else
+                warn "Tag '$tag' not found in repository. Using latest commit."
+            fi
+        fi
+
         if [[ ! -f "$PLUGIN_DIR/$pname/plugin.conf" ]]; then
             error "No plugin.conf found after clone. Not a valid plugin."
             rm -rf "${PLUGIN_DIR:?}/$pname"
@@ -56,7 +72,7 @@ install_plugin() {
             (cd "$PLUGIN_DIR/$pname" && bash install.sh)
         fi
 
-        success "Installed plugin '$pname' from git."
+        success "Installed plugin '$pname' (${version:+v${version}})."
         return 0
     fi
 

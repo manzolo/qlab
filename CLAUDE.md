@@ -43,7 +43,7 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 | `plugin.bash` | `install_plugin`, `run_plugin`, `uninstall_plugin`, `list_installed_plugins` | `PLUGIN_DIR` |
 | `registry.bash` | `load_registry`, `get_plugin_git_url`, `list_available_plugins` | `REGISTRY_DATA`, `REGISTRY_CACHE_DIR` |
 
-**Plugin resolution order** in `cmd_install`: bundled (`plugins/`) → registry lookup → treat as path/git-URL.
+**Plugin resolution order** in `cmd_install`: bundled (`plugins/`) → registry lookup → treat as path/git-URL. When installing from the registry, the plugin version from `index.json` is used to checkout the corresponding git tag (`v<version>`) after cloning.
 
 **Workspace (`.qlab/`):** Created by `qlab init`. Contains `disks/`, `state/`, `plugins/`, `images/`, `cache/`, `logs/`, `ssh/` (auto-generated key pair), and `qlab.conf` (copied from `etc/qlab.conf.example`).
 

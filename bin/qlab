@@ -207,8 +207,10 @@ cmd_install() {
         local git_url
         git_url=$(get_plugin_git_url "$target" 2>/dev/null || true)
         if [[ -n "$git_url" ]]; then
-            info "Found '$target' in registry: $git_url"
-            install_plugin "$git_url"
+            local reg_version
+            reg_version=$(get_plugin_version "$target" 2>/dev/null || true)
+            info "Found '$target' in registry: $git_url (v${reg_version:-latest})"
+            install_plugin "$git_url" "$reg_version"
             return $?
         fi
     fi
