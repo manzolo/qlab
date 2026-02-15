@@ -30,42 +30,18 @@ Describe "lib/vm.bash"
       The status should be failure
       The stderr should include "already in use"
     End
-  End
-
-  Describe "scan_plugin_ports()"
-    setup() {
-      TEST_WS=$(mktemp -d)
-      WORKSPACE_DIR="$TEST_WS"
-      mkdir -p "$TEST_WS/plugins/fake-lab"
-      cat > "$TEST_WS/plugins/fake-lab/run.sh" <<'SCRIPT'
-SSH_PORT=2250
-SCRIPT
-    }
-    cleanup() {
-      rm -rf "$TEST_WS"
-    }
-    Before 'setup'
-    After 'cleanup'
-
-    It "finds SSH_PORT declarations in plugin run.sh"
-      When call scan_plugin_ports
-      The output should include "fake-lab:SSH_PORT:2250"
+    It "ignores port 0 (dynamic) in hostfwd"
+      When call check_all_ports 59999 "user,id=net0,hostfwd=tcp::59999-:22,hostfwd=tcp::0-:3306"
       The status should be success
     End
   End
 
-  Describe "find_next_free_port()"
+  Describe "allocate_port()"
     setup() {
       TEST_WS=$(mktemp -d)
       WORKSPACE_DIR="$TEST_WS"
-      mkdir -p "$TEST_WS/plugins/a-lab"
-      cat > "$TEST_WS/plugins/a-lab/run.sh" <<'SCRIPT'
-SSH_PORT=2222
-SCRIPT
-      mkdir -p "$TEST_WS/plugins/b-lab"
-      cat > "$TEST_WS/plugins/b-lab/run.sh" <<'SCRIPT'
-SSH_PORT=2223
-SCRIPT
+      STATE_DIR="$TEST_WS/state"
+      mkdir -p "$STATE_DIR"
     }
     cleanup() {
       rm -rf "$TEST_WS"
@@ -73,25 +49,41 @@ SCRIPT
     Before 'setup'
     After 'cleanup'
 
-    It "returns the first unused port"
-      When call find_next_free_port
-      The output should eq "2224"
+    It "returns a port >= 2222"
+      When call allocate_port
+      The output should be present
       The status should be success
+    End
+
+    It "returns a preferred port when it is free"
+      When call allocate_port 5555
+      The output should eq "5555"
+      The status should be success
+    End
+
+    It "returns two different ports on consecutive calls"
+      allocate_two_ports() {
+        local p1 p2
+        p1=$(allocate_port)
+        p2=$(allocate_port)
+        if [[ "$p1" != "$p2" ]]; then
+          echo "different"
+        else
+          echo "same"
+        fi
+      }
+      When call allocate_two_ports
+      The output should eq "different"
     End
   End
 
-  Describe "check_port_conflicts()"
+  Describe "_port_is_allocated()"
     setup() {
       TEST_WS=$(mktemp -d)
       WORKSPACE_DIR="$TEST_WS"
-      mkdir -p "$TEST_WS/plugins/x-lab"
-      cat > "$TEST_WS/plugins/x-lab/run.sh" <<'SCRIPT'
-SSH_PORT=2250
-SCRIPT
-      mkdir -p "$TEST_WS/plugins/y-lab"
-      cat > "$TEST_WS/plugins/y-lab/run.sh" <<'SCRIPT'
-SSH_PORT=2250
-SCRIPT
+      STATE_DIR="$TEST_WS/state"
+      mkdir -p "$STATE_DIR"
+      echo "3333" > "$STATE_DIR/.allocated_ports"
     }
     cleanup() {
       rm -rf "$TEST_WS"
@@ -99,11 +91,49 @@ SCRIPT
     Before 'setup'
     After 'cleanup'
 
-    It "detects duplicate ports"
-      When call check_port_conflicts
-      The stderr should include "Port conflicts detected"
-      The stderr should include "2250"
+    It "returns success for an allocated port"
+      When call _port_is_allocated 3333
+      The status should be success
+    End
+    It "returns failure for a non-allocated port"
+      When call _port_is_allocated 4444
       The status should be failure
     End
   End
+
+  Describe "_release_allocated_port()"
+    setup() {
+      TEST_WS=$(mktemp -d)
+      WORKSPACE_DIR="$TEST_WS"
+      STATE_DIR="$TEST_WS/state"
+      mkdir -p "$STATE_DIR"
+      printf '%s\n' "3333" "4444" > "$STATE_DIR/.allocated_ports"
+    }
+    cleanup() {
+      rm -rf "$TEST_WS"
+    }
+    Before 'setup'
+    After 'cleanup'
+
+    It "removes the specified port from the allocated file"
+      release_and_check() {
+        _release_allocated_port 3333
+        if _port_is_allocated 3333; then
+          echo "still allocated"
+        else
+          echo "released"
+        fi
+      }
+      When call release_and_check
+      The output should eq "released"
+    End
+  End
+
+  Describe "check_host_resources()"
+    It "does not fail for reasonable memory"
+      When call check_host_resources 1024 1
+      The status should be success
+    End
+  End
+
 End

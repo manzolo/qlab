@@ -131,8 +131,9 @@ cmd_reset() {
         done
 
         # Clean state files (prefix match covers multi-VM)
-        rm -f "$STATE_DIR/${pname}".pid "$STATE_DIR/${pname}".port
-        rm -f "$STATE_DIR/${pname}-"*.pid "$STATE_DIR/${pname}-"*.port
+        rm -f "$STATE_DIR/${pname}".pid "$STATE_DIR/${pname}".port "$STATE_DIR/${pname}".ports
+        rm -f "$STATE_DIR/${pname}-"*.pid "$STATE_DIR/${pname}-"*.port "$STATE_DIR/${pname}-"*.ports
+        rm -f "$STATE_DIR/.allocated_ports"
         # shellcheck disable=SC2153  # LOG_DIR is defined in lib/vm.bash
         rm -f "$LOG_DIR/${pname}".log
         rm -f "$LOG_DIR/${pname}-"*.log
@@ -258,10 +259,23 @@ cmd_stop() {
     fi
 
     info "Stopping ${#matches[@]} VM(s) matching '$name'..."
-    local failed=0
-    for vm in "${matches[@]}"; do
-        stop_vm "$vm" || failed=$((failed + 1))
-    done
+    if [[ ${#matches[@]} -ge 2 ]]; then
+        # Parallel stop for 2+ VMs
+        local pids=()
+        for vm in "${matches[@]}"; do
+            stop_vm "$vm" &
+            pids+=($!)
+        done
+        local failed=0
+        for pid in "${pids[@]}"; do
+            wait "$pid" || failed=$((failed + 1))
+        done
+    else
+        local failed=0
+        for vm in "${matches[@]}"; do
+            stop_vm "$vm" || failed=$((failed + 1))
+        done
+    fi
 
     if [[ $failed -gt 0 ]]; then
         warn "$failed VM(s) failed to stop."
@@ -328,47 +342,54 @@ cmd_ports() {
 
     _load_workspace_config
 
-    echo "${BOLD}SSH Port Map${RESET}"
+    echo "${BOLD}Port Map${RESET}"
     echo ""
 
-    # Collect declared ports
-    local entries=()
-    local -A port_count=()
-    while IFS=: read -r plugin var port; do
-        entries+=("${port}:${plugin}:${var}")
-        port_count["$port"]=$(( ${port_count["$port"]:-0} + 1 ))
-    done < <(scan_plugin_ports)
+    # Collect active ports from .ports files in state dir
+    local has_ports=0
+    if [[ -d "$STATE_DIR" ]]; then
+        local entries=()
+        for ports_file in "$STATE_DIR"/*.ports; do
+            [[ -f "$ports_file" ]] || continue
+            local vm_name
+            vm_name="$(basename "$ports_file" .ports)"
+            # Check if VM is actually running
+            if ! is_vm_running "$vm_name"; then
+                continue
+            fi
+            while IFS=: read -r proto host_port guest_port; do
+                [[ -n "$proto" ]] || continue
+                entries+=("${host_port}:${vm_name}:${proto}:${guest_port}")
+                has_ports=1
+            done < "$ports_file"
+        done
 
-    if [[ ${#entries[@]} -eq 0 ]]; then
-        echo "  No plugins installed."
-        echo ""
-        echo "  Install a plugin first: qlab install hello-lab"
-        return 0
+        if [[ $has_ports -eq 1 ]]; then
+            # Sort by host port number
+            IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
+
+            echo "${BOLD}Active port forwards (running VMs):${RESET}"
+            printf "  %-8s %-30s %-6s %s\n" "HOST" "VM" "PROTO" "GUEST"
+            printf "  %-8s %-30s %-6s %s\n" "--------" "------------------------------" "------" "-----"
+            for entry in "${sorted_entries[@]}"; do
+                IFS=: read -r host_port vm_name proto guest_port <<< "$entry"
+                printf "  %-8s %-30s %-6s %s\n" "$host_port" "$vm_name" "$proto" "$guest_port"
+            done
+            echo ""
+        fi
     fi
 
-    # Sort by port number
-    IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
+    if [[ $has_ports -eq 0 ]]; then
+        echo "  No active port forwards."
+        echo ""
+        echo "  Ports are allocated dynamically when VMs start."
+        echo "  Run a plugin first: qlab run hello-lab"
+        echo ""
+    fi
 
-    echo "${BOLD}Declared ports (installed plugins):${RESET}"
-    for entry in "${sorted_entries[@]}"; do
-        IFS=: read -r port plugin var <<< "$entry"
-        local conflict=""
-        if [[ ${port_count["$port"]} -gt 1 ]]; then
-            conflict="  ${RED}[CONFLICT]${RESET}"
-        fi
-        printf "  %-6s %s (%s)%s\n" "$port" "$plugin" "$var" "$conflict"
-    done
-    echo ""
-
-    # Running VMs
+    # Running VMs summary
     echo "${BOLD}Running VMs:${RESET}"
     list_running_vms
-    echo ""
-
-    # Next available port
-    local next_port
-    next_port=$(find_next_free_port)
-    echo "${BOLD}Next available port:${RESET}  $next_port"
 }
 
 cmd_list() {

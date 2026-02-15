@@ -107,11 +107,20 @@ wait_for_cloud_init() {
     return 1
 }
 
-# Extract SSH ports for a given plugin from qlab ports output
-# Only matches lines in the "Declared ports" section: "  2222   plugin-name (VAR)"
+# Extract SSH ports for a given plugin from .port files in state dir
+# With dynamic port allocation, ports are read from state files, not from run.sh
 get_plugin_ports() {
     local pname="$1"
-    "$QLAB" ports 2>/dev/null | awk -v plugin="$pname" '$1 ~ /^[0-9]+$/ && $2 == plugin {print $1}'
+    local state_dir="$WORK_DIR/.qlab/state"
+    # Exact match
+    if [[ -f "$state_dir/${pname}.port" ]]; then
+        cat "$state_dir/${pname}.port"
+    fi
+    # Sub-VM match (pname-*)
+    for portfile in "$state_dir/${pname}-"*.port; do
+        [[ -f "$portfile" ]] || continue
+        cat "$portfile"
+    done
 }
 
 # --- Dependency check ---
@@ -205,9 +214,9 @@ for pname in "${PLUGINS[@]}"; do
     assert "$pname: appears in 'status'" \
         bash -c "'$QLAB' status 2>/dev/null | grep -q '$pname'"
 
-    # Ports shows it
-    assert "$pname: appears in 'ports'" \
-        bash -c "'$QLAB' ports 2>/dev/null | grep -q '$pname'"
+    # Ports command works (no crash) — dynamic ports only show for running VMs
+    assert "$pname: 'ports' command runs without error" \
+        bash -c "'$QLAB' ports >/dev/null 2>&1"
 
     # ===== VM boot + SSH + cloud-init =====
     if [[ "$RUN_VM" == true ]]; then
@@ -281,20 +290,20 @@ for pname in "${PLUGINS[@]}"; do
     echo ""
 done
 
-# --- Port conflict check (install all, then verify) ---
+# --- Install-all check (all plugins) ---
 
-printf "${BOLD}--- Port conflict check (all plugins) ---${RESET}\n"
+printf "${BOLD}--- Install-all check (all plugins) ---${RESET}\n"
 log_info "Installing all plugins..."
 for pname in "${PLUGINS[@]}"; do
     "$QLAB" install "$pname" >/dev/null 2>&1 || true
 done
 
-assert "No port conflicts when all plugins installed" \
-    bash -c "'$QLAB' ports 2>/dev/null | grep -q '\[CONFLICT\]' && exit 1 || exit 0"
+assert "All plugins installed" \
+    bash -c "test $(ls -d .qlab/plugins/*/ 2>/dev/null | wc -l) -eq ${#PLUGINS[@]}"
 
-# Show full port map for reference
-log_info "Port map with all plugins installed:"
-"$QLAB" ports 2>/dev/null | sed 's/^/    /'
+# Ports command works with all plugins installed (no VMs running)
+assert "'ports' command runs with all plugins installed" \
+    bash -c "'$QLAB' ports >/dev/null 2>&1"
 
 # Uninstall all
 log_info "Cleaning up all plugins..."
