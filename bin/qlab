@@ -285,11 +285,22 @@ cmd_stop() {
 }
 
 cmd_shell() {
-    if [[ $# -eq 0 ]]; then
-        error "Usage: qlab shell <vm-name> [ssh-user]"
+    local no_wait=""
+    local args=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-wait) no_wait="--no-wait"; shift ;;
+            *)         args+=("$1"); shift ;;
+        esac
+    done
+
+    if [[ ${#args[@]} -eq 0 ]]; then
+        error "Usage: qlab shell [--no-wait] <vm-name> [ssh-user]"
         return 1
     fi
-    shell_vm "$1" "${2:-labuser}"
+
+    shell_vm "${args[0]}" "${args[1]:-labuser}" "$no_wait"
 }
 
 cmd_log() {
@@ -427,7 +438,7 @@ Commands:
   install       Install a plugin
   uninstall     Uninstall a plugin
   run           Run a plugin
-  shell         Open SSH shell to a running VM
+  shell         Open SSH shell to a running VM (waits for cloud-init)
   stop          Stop a running VM
   log           Show VM boot log (tail -f)
   list          List plugins
@@ -440,7 +451,8 @@ Examples:
   qlab init
   qlab install hello-lab
   qlab run hello-lab
-  qlab shell hello-lab
+  qlab shell hello-lab              # waits for cloud-init
+  qlab shell --no-wait hello-lab   # connects immediately
   qlab stop hello-lab
   qlab log hello-lab
   qlab reset hello-lab

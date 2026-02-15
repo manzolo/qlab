@@ -382,11 +382,74 @@ is_vm_running() {
     return 1
 }
 
+# Wait for cloud-init to finish on a running VM
+# Usage: wait_for_cloud_init vm_name [timeout_seconds] [ssh_user]
+# Returns 0 if cloud-init completed, 1 on timeout or error.
+wait_for_cloud_init() {
+    local vm_name="$1"
+    local timeout="${2:-300}"
+    local ssh_user="${3:-labuser}"
+    local port_file="$STATE_DIR/${vm_name}.port"
+
+    if [[ ! -f "$port_file" ]]; then
+        error "No port file found for VM '$vm_name'."
+        return 1
+    fi
+
+    local ssh_port
+    ssh_port=$(cat "$port_file")
+
+    local ssh_opts=(
+        -o StrictHostKeyChecking=no
+        -o UserKnownHostsFile=/dev/null
+        -o LogLevel=ERROR
+        -o BatchMode=yes
+        -o ConnectTimeout=5
+    )
+    if [[ -f "$SSH_KEY" ]]; then
+        ssh_opts+=(-i "$SSH_KEY")
+    fi
+
+    info "Waiting for cloud-init to finish on '$vm_name'..."
+
+    local elapsed=0
+    while [[ $elapsed -lt $timeout ]]; do
+        local status_output
+        status_output=$(ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost" \
+            "cloud-init status 2>/dev/null || echo 'status: not-available'" 2>/dev/null) || {
+            sleep 5
+            elapsed=$((elapsed + 5))
+            continue
+        }
+
+        if echo "$status_output" | grep -q "status: done"; then
+            success "Cloud-init completed on '$vm_name'."
+            return 0
+        elif echo "$status_output" | grep -q "status: error"; then
+            warn "Cloud-init finished with errors on '$vm_name'."
+            return 0
+        elif echo "$status_output" | grep -q "status: disabled"; then
+            success "Cloud-init is disabled on '$vm_name' (nothing to wait for)."
+            return 0
+        elif echo "$status_output" | grep -q "status: not-available"; then
+            success "Cloud-init not available on '$vm_name' (nothing to wait for)."
+            return 0
+        fi
+
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+
+    error "Timeout waiting for cloud-init on '$vm_name' after ${timeout}s."
+    return 1
+}
+
 # Open an SSH shell to a running VM
-# Usage: shell_vm plugin_name [ssh_user]
+# Usage: shell_vm plugin_name [ssh_user] [--no-wait]
 shell_vm() {
     local plugin_name="$1"
     local ssh_user="${2:-labuser}"
+    local no_wait="${3:-}"
     local pid_file="$STATE_DIR/${plugin_name}.pid"
     local port_file="$STATE_DIR/${plugin_name}.port"
 
@@ -411,6 +474,12 @@ shell_vm() {
 
     local ssh_port
     ssh_port=$(cat "$port_file")
+
+    # Wait for SSH and cloud-init unless --no-wait
+    if [[ "$no_wait" != "--no-wait" ]]; then
+        wait_for_vm "$plugin_name" 120 "$ssh_user" || return 1
+        wait_for_cloud_init "$plugin_name" 300 "$ssh_user" || return 1
+    fi
 
     info "Connecting to '$plugin_name' (SSH port $ssh_port, user $ssh_user)..."
     echo "  Type 'exit' to disconnect."
