@@ -42,16 +42,15 @@ _ssh_opts() {
         esac
     done
 
-    echo "-o StrictHostKeyChecking=no"
-    echo "-o UserKnownHostsFile=/dev/null"
-    echo "-o LogLevel=ERROR"
+    local opts="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
     if [[ "$batch" == true ]]; then
-        echo "-o BatchMode=yes"
+        opts+=" -o BatchMode=yes"
     fi
-    echo "-o ConnectTimeout=$connect_timeout"
+    opts+=" -o ConnectTimeout=$connect_timeout"
     if [[ -f "$SSH_KEY" ]]; then
-        echo "-i $SSH_KEY"
+        opts+=" -i $SSH_KEY"
     fi
+    echo "$opts"
 }
 
 # Check if a PID belongs to a QEMU process (guards against PID reuse)
