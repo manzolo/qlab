@@ -91,8 +91,8 @@ detect_repo_context() {
 
 # --- Step 1: Dependencies ---
 
-RUNTIME_DEPS=(qemu-system-x86_64 qemu-img genisoimage git jq curl ssh)
-APT_PACKAGES=(qemu-system-x86 qemu-utils genisoimage git jq curl openssh-client)
+RUNTIME_DEPS=(qemu-system-x86_64 qemu-img genisoimage git jq curl ssh sshpass)
+APT_PACKAGES=(qemu-system-x86 qemu-utils genisoimage git jq curl openssh-client sshpass)
 
 install_dependencies() {
     info "Checking runtime dependencies..."
