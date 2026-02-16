@@ -1,0 +1,51 @@
+name: Registry Plugin Test
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  registry-plugins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq qemu-system-x86 qemu-utils genisoimage sshpass curl
+
+      - name: Run registry plugin test (install/uninstall all plugins)
+        run: |
+          bash tests/test_registry_plugins.sh --no-vm
+
+      - name: VM test - hello-lab (software emulation)
+        timeout-minutes: 10
+        run: |
+          ./bin/qlab init
+          ./bin/qlab install hello-lab
+          ./bin/qlab run hello-lab
+
+          SSH_PORT=$(cat .qlab/state/hello-lab.port)
+          echo "SSH port allocated: $SSH_PORT"
+
+          echo "Waiting for VM to boot (software emulation)..."
+          for i in $(seq 1 60); do
+            if sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+               -o ConnectTimeout=5 -o LogLevel=ERROR -p "$SSH_PORT" labuser@localhost "echo OK" 2>/dev/null; then
+              echo "VM is ready after ~${i}0 seconds"
+              break
+            fi
+            echo "  Attempt $i/60 - VM not ready yet..."
+            sleep 10
+          done
+
+          sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR -p "$SSH_PORT" labuser@localhost "hostname && uname -a"
+
+          ./bin/qlab stop hello-lab
+          echo "y" | ./bin/qlab uninstall hello-lab
