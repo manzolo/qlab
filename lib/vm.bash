@@ -26,6 +26,44 @@ get_ssh_public_key() {
     fi
 }
 
+# Build common SSH options for connecting to local VMs.
+# Usage: local opts=($(_ssh_opts))
+# Optional: _ssh_opts [--batch] [--connect-timeout SECS]
+# --batch adds BatchMode=yes (for non-interactive connections)
+# --connect-timeout sets ConnectTimeout (default: 5)
+_ssh_opts() {
+    local batch=false
+    local connect_timeout=5
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --batch) batch=true; shift ;;
+            --connect-timeout) connect_timeout="$2"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+
+    echo "-o StrictHostKeyChecking=no"
+    echo "-o UserKnownHostsFile=/dev/null"
+    echo "-o LogLevel=ERROR"
+    if [[ "$batch" == true ]]; then
+        echo "-o BatchMode=yes"
+    fi
+    echo "-o ConnectTimeout=$connect_timeout"
+    if [[ -f "$SSH_KEY" ]]; then
+        echo "-i $SSH_KEY"
+    fi
+}
+
+# Check if a PID belongs to a QEMU process (guards against PID reuse)
+# Usage: _is_qemu_process pid
+_is_qemu_process() {
+    local pid="$1"
+    kill -0 "$pid" 2>/dev/null || return 1
+    local comm
+    comm=$(cat "/proc/$pid/comm" 2>/dev/null) || return 1
+    [[ "$comm" == qemu-system-* ]]
+}
+
 # --- Hardware Checks ---
 
 # Check if KVM acceleration is available
@@ -198,7 +236,7 @@ start_vm() {
     if [[ -f "$pid_file" ]]; then
         local old_pid
         old_pid=$(cat "$pid_file")
-        if kill -0 "$old_pid" 2>/dev/null; then
+        if _is_qemu_process "$old_pid"; then
             local existing_port="?"
             [[ -f "$STATE_DIR/${plugin_name}.port" ]] && existing_port=$(cat "$STATE_DIR/${plugin_name}.port")
             warn "VM '$plugin_name' is already running (PID $old_pid)."
@@ -348,7 +386,7 @@ stop_vm() {
     local pid
     pid=$(cat "$pid_file")
 
-    if ! kill -0 "$pid" 2>/dev/null; then
+    if ! _is_qemu_process "$pid"; then
         warn "VM '$plugin_name' is not running (stale PID $pid)."
         rm -f "$pid_file"
         return 0
@@ -363,7 +401,7 @@ stop_vm() {
         timeout=$((timeout - 1))
     done
 
-    if kill -0 "$pid" 2>/dev/null; then
+    if _is_qemu_process "$pid"; then
         warn "Graceful shutdown timed out, forcing..."
         kill -9 "$pid" 2>/dev/null || true
     fi
@@ -389,7 +427,7 @@ is_vm_running() {
     if [[ -f "$pid_file" ]]; then
         local pid
         pid=$(cat "$pid_file")
-        if kill -0 "$pid" 2>/dev/null; then
+        if _is_qemu_process "$pid"; then
             return 0
         fi
     fi
@@ -413,16 +451,8 @@ wait_for_cloud_init() {
     local ssh_port
     ssh_port=$(cat "$port_file")
 
-    local ssh_opts=(
-        -o StrictHostKeyChecking=no
-        -o UserKnownHostsFile=/dev/null
-        -o LogLevel=ERROR
-        -o BatchMode=yes
-        -o ConnectTimeout=5
-    )
-    if [[ -f "$SSH_KEY" ]]; then
-        ssh_opts+=(-i "$SSH_KEY")
-    fi
+    local ssh_opts
+    read -ra ssh_opts <<< "$(_ssh_opts --batch --connect-timeout 5)"
 
     info "Waiting for cloud-init to finish on '$vm_name'..."
 
@@ -475,7 +505,7 @@ shell_vm() {
 
     local pid
     pid=$(cat "$pid_file")
-    if ! kill -0 "$pid" 2>/dev/null; then
+    if ! _is_qemu_process "$pid"; then
         error "VM '$plugin_name' is not running (stale PID)."
         rm -f "$pid_file" "$port_file"
         return 1
@@ -499,15 +529,8 @@ shell_vm() {
     echo "  Type 'exit' to disconnect."
     echo ""
 
-    local ssh_opts=(
-        -o StrictHostKeyChecking=no
-        -o UserKnownHostsFile=/dev/null
-        -o LogLevel=ERROR
-    )
-
-    if [[ -f "$SSH_KEY" ]]; then
-        ssh_opts+=(-i "$SSH_KEY")
-    fi
+    local ssh_opts
+    read -ra ssh_opts <<< "$(_ssh_opts)"
 
     ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost"
 }
@@ -521,7 +544,7 @@ list_running_vms() {
             local vm_name pid ssh_port
             vm_name="$(basename "$pidfile" .pid)"
             pid=$(cat "$pidfile")
-            if kill -0 "$pid" 2>/dev/null; then
+            if _is_qemu_process "$pid"; then
                 ssh_port="?"
                 if [[ -f "$STATE_DIR/${vm_name}.port" ]]; then
                     ssh_port=$(cat "$STATE_DIR/${vm_name}.port")
@@ -557,16 +580,13 @@ wait_for_vm() {
     ssh_port=$(cat "$port_file")
     local elapsed=0
 
+    local ssh_opts
+    read -ra ssh_opts <<< "$(_ssh_opts --batch --connect-timeout 3)"
+
     info "Waiting for VM '$vm_name' to become reachable (SSH port $ssh_port, timeout ${timeout}s)..."
 
     while [[ $elapsed -lt $timeout ]]; do
-        if ssh -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              -o LogLevel=ERROR \
-              -o BatchMode=yes \
-              -o ConnectTimeout=3 \
-              ${SSH_KEY:+-i "$SSH_KEY"} \
-              -p "$ssh_port" "${ssh_user}@localhost" true 2>/dev/null; then
+        if ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost" true 2>/dev/null; then
             success "VM '$vm_name' is reachable."
             return 0
         fi

@@ -49,10 +49,14 @@ jobs:
         run: |
           ./bin/qlab run hello-lab
 
+          # Read dynamically allocated SSH port from state file
+          SSH_PORT=$(cat .qlab/state/hello-lab.port)
+          echo "SSH port allocated: $SSH_PORT"
+
           echo "Waiting for VM to boot (software emulation, may take a few minutes)..."
           for i in $(seq 1 60); do
             if sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-               -o ConnectTimeout=5 -o LogLevel=ERROR -p 2222 labuser@localhost "echo OK" 2>/dev/null; then
+               -o ConnectTimeout=5 -o LogLevel=ERROR -p "$SSH_PORT" labuser@localhost "echo OK" 2>/dev/null; then
               echo "VM is ready after ~${i}0 seconds"
               break
             fi
@@ -62,7 +66,7 @@ jobs:
 
           echo "--- Verifying VM ---"
           sshpass -p labpass ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            -o LogLevel=ERROR -p 2222 labuser@localhost "hostname && uname -a"
+            -o LogLevel=ERROR -p "$SSH_PORT" labuser@localhost "hostname && uname -a"
 
           echo "--- Checking status ---"
           ./bin/qlab status | grep -q "hello-lab"
