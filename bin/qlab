@@ -428,7 +428,7 @@ cmd_list() {
 
 usage() {
     cat <<EOF
-QLab v0.1.0 - Modular CLI for QEMU/KVM educational labs
+QLab v0.3.0 - Modular CLI for QEMU/KVM educational labs
 
 Usage:
   qlab <command> [options]
