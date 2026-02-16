@@ -12,13 +12,13 @@ Create a new QLab plugin with the following details:
 PLUGIN_NAME: <name>
 DESCRIPTION: <what the lab teaches>
 CLOUD_IMAGE: <URL of the cloud image to use, or "same as hello-lab" for Ubuntu 22.04 minimal>
-SSH_PORT: <port, run 'qlab ports' to find the next free one>
 SSH_USER: <username to create in the VM, e.g. labuser>
 SSH_PASS: <password for the user>
 PACKAGES: <comma-separated list of packages to install via cloud-init, e.g. nginx, docker.io>
-MEMORY: <VM memory in MB, e.g. 1024>
+MEMORY: <VM memory in MB, e.g. 1024 (use at least 768 for heavy services)>
 MOTD: <multi-line welcome message shown on SSH login, with lab objectives and useful commands>
 RUNCMD: <list of commands to run on first boot, one per line>
+SERVICE_PORTS: <optional: comma-separated guest ports to forward, e.g. 80, 3306>
 ```
 
 Use the architecture reference below to generate the plugin files.
@@ -29,8 +29,8 @@ A QLab plugin is a git repository with this structure:
 
 ```
 my-plugin/
-├── plugin.conf    # Required: JSON metadata
-├── install.sh     # Required: runs on install
+├── plugin.conf    # Required: JSON metadata (name, version, description)
+├── install.sh     # Optional: runs on install (failure aborts installation)
 ├── run.sh         # Required: main entry point
 └── README.md      # Recommended: documentation
 ```
@@ -40,7 +40,7 @@ It runs via `qlab run <name>`, which `cd`s into `.qlab/plugins/<name>/` and exec
 
 ### plugin.conf
 
-JSON metadata file:
+JSON metadata file with **required** fields (`name`, `version`, `description`). Validated on install via `validate_plugin_conf()`:
 
 ```json
 {
@@ -52,10 +52,11 @@ JSON metadata file:
 
 - `name`: lowercase, hyphens and underscores only (regex: `^[a-z0-9_-]+$`)
 - Must match the repository directory name
+- All three fields are mandatory — installation fails if any is missing
 
 ### install.sh
 
-Runs once on `qlab install`. Should:
+Optional. Runs once on `qlab install`. **If it exits non-zero, installation is aborted** and the plugin directory is cleaned up. Should:
 
 - Print educational info about what the lab does
 - Check for required dependencies
@@ -95,10 +96,10 @@ Main entry point. This is where the VM is configured and started. Must:
 
 1. Source QLab core libraries
 2. Download/verify cloud image
-3. Create cloud-init user-data and meta-data
+3. Create cloud-init user-data (with `package_update: true`) and meta-data
 4. Generate cloud-init ISO with genisoimage
 5. Create overlay disk (COW) from base image
-6. Start VM in background with SSH port forwarding
+6. Start VM in background with **dynamic** SSH port (`auto`)
 
 Template:
 
@@ -107,7 +108,6 @@ Template:
 set -euo pipefail
 
 PLUGIN_NAME="<plugin-name>"
-SSH_PORT=<port>
 
 echo "============================================="
 echo "  ${PLUGIN_NAME}: <title>"
@@ -119,6 +119,7 @@ if [[ -z "${QLAB_ROOT:-}" ]]; then
     exit 1
 fi
 for lib_file in "$QLAB_ROOT"/lib/*.bash; do
+    # shellcheck source=/dev/null
     [[ -f "$lib_file" ]] && source "$lib_file"
 done
 
@@ -128,7 +129,7 @@ LAB_DIR="lab"
 IMAGE_DIR="$WORKSPACE_DIR/images"
 CLOUD_IMAGE_URL=$(get_config CLOUD_IMAGE_URL "<cloud-image-url>")
 CLOUD_IMAGE_FILE="$IMAGE_DIR/<image-filename>"
-MEMORY=$(get_config DEFAULT_MEMORY <memory>)
+MEMORY="${QLAB_MEMORY:-$(get_config DEFAULT_MEMORY <memory>)}"
 
 mkdir -p "$LAB_DIR" "$IMAGE_DIR"
 
@@ -151,6 +152,7 @@ info "Step 2: Cloud-init configuration"
 cat > "$LAB_DIR/user-data" <<'USERDATA'
 #cloud-config
 hostname: <plugin-name>
+package_update: true
 users:
   - name: <ssh-user>
     plain_text_passwd: <ssh-pass>
@@ -160,7 +162,26 @@ users:
     ssh_authorized_keys:
       - "__QLAB_SSH_PUB_KEY__"
 ssh_pwauth: true
+packages:
+  - <package1>
+  - <package2>
 write_files:
+  - path: /etc/profile.d/cloud-init-status.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      if command -v cloud-init >/dev/null 2>&1; then
+        status=$(cloud-init status 2>/dev/null)
+        if echo "$status" | grep -q "running"; then
+          printf '\033[1;33m'
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Cloud-init is still running..."
+          echo "  Some packages and services may not be ready yet."
+          echo "  Run 'cloud-init status --wait' to wait for completion."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          printf '\033[0m\n'
+        fi
+      fi
   - path: /etc/motd.raw
     content: |
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
@@ -178,9 +199,8 @@ write_files:
         \033[1;33mExit:\033[0m         type '\033[1;31mexit\033[0m'
 
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
-packages:
-  - <package1>
-  - <package2>
+
+
 runcmd:
   - chmod -x /etc/update-motd.d/*
   - sed -i 's/^#\?PrintMotd.*/PrintMotd yes/' /etc/ssh/sshd_config
@@ -216,11 +236,12 @@ OVERLAY_DISK="$LAB_DIR/${PLUGIN_NAME}-disk.qcow2"
 if [[ -f "$OVERLAY_DISK" ]]; then
     rm -f "$OVERLAY_DISK"
 fi
-create_overlay "$CLOUD_IMAGE_FILE" "$OVERLAY_DISK"
+create_overlay "$CLOUD_IMAGE_FILE" "$OVERLAY_DISK" "${QLAB_DISK_SIZE:-}"
 
-# Step 5: Start VM
+# Step 5: Start VM (with optional service port forwarding)
 info "Step 5: Starting VM"
-start_vm "$OVERLAY_DISK" "$CIDATA_ISO" "$MEMORY" "$PLUGIN_NAME" "$SSH_PORT"
+start_vm "$OVERLAY_DISK" "$CIDATA_ISO" "$MEMORY" "$PLUGIN_NAME" auto \
+    "hostfwd=tcp::0-:<SERVICE_PORT>"  # remove this line if no service ports needed
 
 echo ""
 echo "============================================="
@@ -234,6 +255,10 @@ echo ""
 echo "  Connect: qlab shell ${PLUGIN_NAME}"
 echo "  Log:     qlab log ${PLUGIN_NAME}"
 echo "  Stop:    qlab stop ${PLUGIN_NAME}"
+echo "  Ports:   qlab ports"
+echo ""
+echo "  Tip: override resources with environment variables:"
+echo "    QLAB_MEMORY=4096 QLAB_DISK_SIZE=30G qlab run ${PLUGIN_NAME}"
 echo "============================================="
 ```
 
@@ -248,38 +273,79 @@ The plugin sources `$QLAB_ROOT/lib/*.bash` which provides:
 - `success "message"` — print `[OK] message`
 - `confirm_yesno "prompt"` — ask Y/n, returns 0 for yes
 - `check_dependency "cmd"` — verify command exists or error
+- `validate_plugin_name "name"` — check name matches `^[a-z0-9_-]+$`
 
 ### Config (lib/config.bash)
 - `get_config KEY default` — read value from `.qlab/qlab.conf`
 
 ### Disk (lib/disk.bash)
 - `create_disk path [size] [format]` — create qcow2 disk (default 10G)
-- `create_overlay backing_file overlay_path` — create COW overlay disk
+- `create_overlay backing_file overlay_path [size]` — create COW overlay disk (optional resize)
 
 ### VM (lib/vm.bash)
 - `start_vm disk cdrom memory plugin_name ssh_port [extra_args...]` — start VM in background with:
   - Serial output to `.qlab/logs/<plugin_name>.log`
-  - SSH port forwarding `localhost:<ssh_port>` → VM port 22
+  - SSH port forwarding (use `auto` for dynamic allocation)
+  - `-smp` CPU count from `QLAB_CPUS` or `QLAB_DEFAULT_CPUS` (default: 1)
   - PID saved to `.qlab/state/<plugin_name>.pid`
   - Port saved to `.qlab/state/<plugin_name>.port`
+  - All forwarded ports saved to `.qlab/state/<plugin_name>.ports`
   - KVM if available, software emulation otherwise
-  - Extra args starting with `hostfwd=` are added to the same netdev (e.g. `"hostfwd=tcp::8080-:80"` for HTTP)
-- `stop_vm plugin_name` — graceful stop with timeout, then force kill
-- `is_vm_running plugin_name` — returns 0 if running
+  - Extra args starting with `hostfwd=` are added to the same netdev (e.g. `"hostfwd=tcp::0-:80"` for HTTP)
+  - Ports remain tracked in `.allocated_ports` until `stop_vm` releases them
+- `stop_vm plugin_name` — graceful stop with timeout, then force kill; releases allocated ports
+- `is_vm_running plugin_name` — returns 0 if running (verifies PID is a QEMU process)
 - `check_kvm` — returns 0 if KVM is accessible
+- `wait_for_vm vm_name [timeout] [ssh_user]` — wait for SSH reachability
+- `wait_for_cloud_init vm_name [timeout] [ssh_user]` — wait for cloud-init completion
+- `allocate_port [preferred]` — allocate a free TCP port (flock-protected)
+
+### Multi-VM helpers (lib/vm.bash)
+- `start_vm_or_fail GROUP_VAR disk cdrom memory name ssh_port [extra...]` — start VM or roll back group
+- `register_vm_cleanup GROUP_VAR` — install EXIT trap to stop all VMs in group on error
+- `check_host_resources total_mem_mb vm_count` — warn if insufficient memory
+
+### Plugin validation (lib/plugin.bash)
+- `validate_plugin_conf path_to_plugin.conf` — verify JSON validity and required fields (name, version, description)
 
 ### Key variables available in run.sh
 - `QLAB_ROOT` — absolute path to the QLab project
 - `WORKSPACE_DIR` — absolute path to `.qlab/` workspace
 - `QLAB_SSH_PUB_KEY` — the workspace SSH public key for `cloud-init` provisioning
+- `QLAB_DEFAULT_MEMORY` — default VM memory from config (default: 1024)
+- `QLAB_DEFAULT_CPUS` — default VM CPUs from config (default: 1)
 
 ## Multi-VM Plugins
 
-A single plugin can spawn **multiple named VMs** from its `run.sh`. This is useful for labs that require several interconnected machines (e.g., a RAID lab with separate LVM and ZFS instances).
+A single plugin can spawn **multiple named VMs** from its `run.sh`. This is useful for labs that require several interconnected machines (e.g., a mail lab with server and clients).
 
 ### Naming convention
 
-Sub-VMs must be named `{plugin_name}-{instance}`, e.g. `raid-lab-lvm`, `raid-lab-zfs`. This allows `qlab stop raid-lab` to stop all sub-VMs via prefix matching.
+Sub-VMs must be named `{plugin_name}-{instance}`, e.g. `mail-lab-server`, `mail-lab-client1`. This allows `qlab stop mail-lab` to stop all sub-VMs via prefix matching.
+
+### Multi-VM required patterns
+
+Multi-VM plugins **must** use these helpers for safe resource management:
+
+```bash
+# Check resources before starting
+MEMORY_TOTAL=$(( MEMORY * 2 ))
+check_host_resources "$MEMORY_TOTAL" 2
+
+# Track started VMs for automatic rollback
+declare -a STARTED_VMS=()
+register_vm_cleanup STARTED_VMS
+
+# Start VMs with rollback on failure
+start_vm_or_fail STARTED_VMS "$OVERLAY1" "$CIDATA1" "$MEMORY" "mylab-server" auto \
+    [extra args...] || exit 1
+
+start_vm_or_fail STARTED_VMS "$OVERLAY2" "$CIDATA2" "$MEMORY" "mylab-client" auto \
+    [extra args...] || exit 1
+
+# Successful start — disable cleanup trap
+trap - EXIT
+```
 
 ### Creating extra virtual disks
 
@@ -295,60 +361,69 @@ create_disk "$LAB_DIR/extra-disk2.qcow2" 5G
 Extra arguments that are not `hostfwd=` entries are passed as raw QEMU options:
 
 ```bash
-start_vm "$OVERLAY" "$CIDATA_ISO" "$MEMORY" "raid-lab-lvm" 2230 \
+start_vm_or_fail STARTED_VMS "$OVERLAY" "$CIDATA_ISO" "$MEMORY" "raid-lab-lvm" auto \
     -drive "file=$LAB_DIR/lvm-disk1.qcow2,format=qcow2,if=virtio" \
     -drive "file=$LAB_DIR/lvm-disk2.qcow2,format=qcow2,if=virtio"
 ```
 
-### Example: 2-VM plugin with extra disks
+### Internal LAN (VM-to-VM networking)
+
+Multi-VM plugins that need inter-VM communication use QEMU multicast sockets:
 
 ```bash
-# In run.sh of a "raid-lab" plugin:
+INTERNAL_MCAST="230.0.0.1:10100"
+SERVER_LAN_MAC="52:54:00:00:05:01"
+CLIENT_LAN_MAC="52:54:00:00:05:02"
 
-# --- VM 1: LVM instance ---
-for i in 1 2 3 4; do
-    create_disk "$LAB_DIR/lvm-disk${i}.qcow2" 2G
-done
-create_overlay "$CLOUD_IMAGE_FILE" "$LAB_DIR/raid-lab-lvm-disk.qcow2"
-
-start_vm "$LAB_DIR/raid-lab-lvm-disk.qcow2" "$LAB_DIR/cidata-lvm.iso" 1024 "raid-lab-lvm" 2230 \
-    -drive "file=$LAB_DIR/lvm-disk1.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/lvm-disk2.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/lvm-disk3.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/lvm-disk4.qcow2,format=qcow2,if=virtio"
-
-# --- VM 2: ZFS instance ---
-for i in 1 2 3 4; do
-    create_disk "$LAB_DIR/zfs-disk${i}.qcow2" 2G
-done
-create_overlay "$CLOUD_IMAGE_FILE" "$LAB_DIR/raid-lab-zfs-disk.qcow2"
-
-start_vm "$LAB_DIR/raid-lab-zfs-disk.qcow2" "$LAB_DIR/cidata-zfs.iso" 1024 "raid-lab-zfs" 2231 \
-    -drive "file=$LAB_DIR/zfs-disk1.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/zfs-disk2.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/zfs-disk3.qcow2,format=qcow2,if=virtio" \
-    -drive "file=$LAB_DIR/zfs-disk4.qcow2,format=qcow2,if=virtio"
+start_vm_or_fail STARTED_VMS "$OVERLAY_SERVER" "$CIDATA_SERVER" "$MEMORY" "mylab-server" auto \
+    "-netdev" "socket,id=vlan1,mcast=${INTERNAL_MCAST}" \
+    "-device" "virtio-net-pci,netdev=vlan1,mac=${SERVER_LAN_MAC}"
 ```
 
-With this naming convention:
-- `qlab stop raid-lab` stops both `raid-lab-lvm` and `raid-lab-zfs`
-- `qlab stop raid-lab-lvm` stops only the LVM instance
-- `qlab shell raid-lab-lvm` connects to the LVM VM
-- `qlab log raid-lab` lists available sub-VM logs
-- `qlab uninstall raid-lab` stops all sub-VMs before removing the plugin
+Configure static IPs via cloud-init netplan using MAC matching:
+
+```yaml
+write_files:
+  - path: /etc/netplan/60-internal.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          mylan:
+            match:
+              macaddress: "52:54:00:00:05:01"
+            addresses:
+              - 192.168.100.1/24
+runcmd:
+  - netplan apply
+```
+
+### Multi-VM lifecycle
+
+With the naming convention:
+- `qlab stop mylab` stops all sub-VMs (parallel for 2+)
+- `qlab stop mylab-server` stops only the server
+- `qlab shell mylab-server` connects to the server VM
+- `qlab log mylab` lists available sub-VM logs
+- `qlab uninstall mylab` stops all sub-VMs before removing the plugin
 
 ## Rules
 
-1. **SSH port must be unique** per plugin (2222 is taken by hello-lab)
+1. **Ports are always dynamic** — use `auto` for SSH and `hostfwd=tcp::0-:GUEST_PORT` for service ports. Never hardcode host ports.
 2. **Use overlay disks** — never modify the base cloud image directly
-3. **Educational echoes** — explain what each step does and why
-4. **set -euo pipefail** — always, in both install.sh and run.sh
-5. **Plugin name** — lowercase, hyphens/underscores only
-6. **cloud-init user-data** — always include `ssh_authorized_keys` with a placeholder (e.g. `__QLAB_SSH_PUB_KEY__`) and replace it with `sed` after creation using `${QLAB_SSH_PUB_KEY:-}`. Use **quoted heredocs** (`<<'USERDATA'`) to protect MOTD color codes and VM-side commands from host expansion.
-7. **README.md** — document objectives, credentials, and how to interact
-8. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands. Use ANSI escape codes (e.g. `\033[1;32m`) for colors. In `runcmd`, convert it with `printf '%b\n' "$(cat /etc/motd.raw)" > /etc/motd` (the `\n` is needed because `$()` strips trailing newlines) then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`.
-9. The plugin repo should be named `qlab-plugin-<name>` on GitHub
-10. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
+3. **Disk size** — use `${QLAB_DISK_SIZE:-}` to let central config or user override control it. Never hardcode.
+4. **Memory** — use `${QLAB_MEMORY:-$(get_config DEFAULT_MEMORY <default>)}`. Use at least 768MB per VM for heavy services (mail, database, Docker).
+5. **`package_update: true`** — always include in cloud-init user-data to ensure package lists are up to date
+6. **cloud-init-status.sh** — always include the `write_files` block for `/etc/profile.d/cloud-init-status.sh` (warns the user if cloud-init is still running on login)
+7. **Educational echoes** — explain what each step does and why
+8. **`set -euo pipefail`** — always, in both install.sh and run.sh
+9. **Plugin name** — lowercase, hyphens/underscores only
+10. **cloud-init user-data** — always include `ssh_authorized_keys` with a placeholder (e.g. `__QLAB_SSH_PUB_KEY__`) and replace it with `sed` after creation using `${QLAB_SSH_PUB_KEY:-}`. Use **quoted heredocs** (`<<'USERDATA'`) to protect MOTD color codes and VM-side commands from host expansion.
+11. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands. Use ANSI escape codes (e.g. `\033[1;32m`) for colors. In `runcmd`, convert it with `printf '%b\n' "$(cat /etc/motd.raw)" > /etc/motd` (the `\n` is needed because `$()` strips trailing newlines) then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`.
+12. **Multi-VM plugins** must use `start_vm_or_fail`, `register_vm_cleanup`, and `check_host_resources`
+13. **README.md** — document objectives, credentials, and how to interact
+14. The plugin repo should be named `qlab-plugin-<name>` on GitHub
+15. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
 
 ## Example: hello-lab registry entry
 
@@ -356,7 +431,7 @@ With this naming convention:
 {
   "name": "hello-lab",
   "description": "Basic VM boot lab with cloud-init",
-  "version": "1.0",
+  "version": "1.2",
   "git_url": "https://github.com/manzolo/qlab-plugin-hello-lab.git"
 }
 ```
@@ -366,14 +441,16 @@ With this naming convention:
 ```bash
 # From the plugin directory:
 git init && git add -A && git commit -m "feat: initial <plugin-name> plugin"
+git tag v1.0
 git remote add origin git@github.com:<user>/qlab-plugin-<name>.git
-git push -u origin main
+git push -u origin main --tags
 
 # Test locally:
 qlab init
 qlab install ./<plugin-dir>     # install from local path
 qlab run <plugin-name>
 qlab shell <plugin-name>
+qlab ports                       # check allocated ports
 qlab stop <plugin-name>
 ```
 
@@ -387,7 +464,6 @@ Fill in the placeholders and send the prompt to an AI assistant:
 PLUGIN_NAME: nginx-lab
 DESCRIPTION: Learn to install and configure Nginx as a web server inside a VM
 CLOUD_IMAGE: same as hello-lab
-SSH_PORT: 2223
 SSH_USER: labuser
 SSH_PASS: labpass
 PACKAGES: nginx, curl
@@ -401,4 +477,5 @@ MOTD: |
 RUNCMD:
   - systemctl enable nginx
   - echo "<h1>nginx-lab is running!</h1>" > /var/www/html/index.html
+SERVICE_PORTS: 80
 ```
