@@ -88,5 +88,11 @@
     "description": "Mail server lab with Postfix and Dovecot, send/receive mail between 2 clients",
     "version": "1.1",
     "git_url": "https://github.com/manzolo/qlab-plugin-mail-lab.git"
+  },
+  {
+    "name": "filesharing-lab",
+    "description": "File sharing lab comparing FTP, NFS and Samba protocols with dedicated servers and a shared client",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-filesharing-lab.git"
   }
 ]

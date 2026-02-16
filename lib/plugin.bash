@@ -11,6 +11,8 @@ install_plugin() {
     if [[ -d "$name_or_path" ]]; then
         local pname
         pname="$(basename "$name_or_path")"
+        # Strip qlab-plugin- prefix if present (same as git URL handling)
+        pname="${pname#qlab-plugin-}"
         validate_plugin_name "$pname" || return 1
 
         if [[ ! -f "$name_or_path/plugin.conf" ]]; then

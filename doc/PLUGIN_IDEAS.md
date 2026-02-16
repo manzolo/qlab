@@ -14,9 +14,6 @@ Future plugin labs to implement for QLab. Grouped by topic area.
 
 | Plugin | Description |
 |--------|-------------|
-| `ftp-lab` | vsftpd with virtual users, chroot, TLS |
-| `nfs-lab` | NFS server + client, exports, mount, permissions |
-| `samba-lab` | SMB/CIFS file sharing with authentication |
 | `proxy-lab` | Squid as HTTP/HTTPS proxy with ACLs |
 
 ## Storage & Filesystem
@@ -68,7 +65,7 @@ Future plugin labs to implement for QLab. Grouped by topic area.
 ## Implementation Priority
 
 **Easy to implement** (single VM, similar pattern to nginx-lab):
-ftp-lab, postgres-lab, redis-lab, cron-lab
+postgres-lab, redis-lab, cron-lab
 
 **Most interesting for learning** (multi-VM, more complex):
 ansible-lab, k8s-lab, cluster-lab
