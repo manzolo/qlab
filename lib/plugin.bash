@@ -3,6 +3,36 @@
 
 PLUGIN_DIR="${WORKSPACE_DIR:-".qlab"}/plugins"
 
+# Validate that a plugin.conf file has the required fields (name, version, description)
+# Usage: validate_plugin_conf path_to_plugin_conf
+validate_plugin_conf() {
+    local conf_file="$1"
+    if [[ ! -f "$conf_file" ]]; then
+        error "plugin.conf not found: $conf_file"
+        return 1
+    fi
+
+    if ! jq empty "$conf_file" 2>/dev/null; then
+        error "plugin.conf is not valid JSON: $conf_file"
+        return 1
+    fi
+
+    local missing=()
+    for field in name version description; do
+        local val
+        val=$(jq -r --arg f "$field" '.[$f] // empty' "$conf_file" 2>/dev/null)
+        if [[ -z "$val" ]]; then
+            missing+=("$field")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        error "plugin.conf missing required field(s): ${missing[*]}"
+        return 1
+    fi
+    return 0
+}
+
 install_plugin() {
     local name_or_path="$1"
     local version="${2:-}"
@@ -19,6 +49,7 @@ install_plugin() {
             error "No plugin.conf found in '$name_or_path'. Not a valid plugin."
             return 1
         fi
+        validate_plugin_conf "$name_or_path/plugin.conf" || return 1
 
         mkdir -p "$PLUGIN_DIR"
         cp -r "$name_or_path" "$PLUGIN_DIR/$pname"
@@ -27,7 +58,11 @@ install_plugin() {
         # Run install.sh if present
         if [[ -f "$PLUGIN_DIR/$pname/install.sh" ]]; then
             info "Running install script for '$pname'..."
-            (cd "$PLUGIN_DIR/$pname" && bash install.sh)
+            if ! (cd "$PLUGIN_DIR/$pname" && bash install.sh); then
+                error "Install script failed for '$pname'."
+                rm -rf "${PLUGIN_DIR:?}/$pname"
+                return 1
+            fi
         fi
         return 0
     fi
@@ -67,11 +102,19 @@ install_plugin() {
             rm -rf "${PLUGIN_DIR:?}/$pname"
             return 1
         fi
+        if ! validate_plugin_conf "$PLUGIN_DIR/$pname/plugin.conf"; then
+            rm -rf "${PLUGIN_DIR:?}/$pname"
+            return 1
+        fi
 
         # Run install.sh if present
         if [[ -f "$PLUGIN_DIR/$pname/install.sh" ]]; then
             info "Running install script for '$pname'..."
-            (cd "$PLUGIN_DIR/$pname" && bash install.sh)
+            if ! (cd "$PLUGIN_DIR/$pname" && bash install.sh); then
+                error "Install script failed for '$pname'."
+                rm -rf "${PLUGIN_DIR:?}/$pname"
+                return 1
+            fi
         fi
 
         success "Installed plugin '$pname' (${version:+v${version}})."
@@ -88,13 +131,18 @@ install_plugin() {
             error "Bundled plugin '$pname' has no plugin.conf."
             return 1
         fi
+        validate_plugin_conf "$QLAB_ROOT/plugins/$pname/plugin.conf" || return 1
         mkdir -p "$PLUGIN_DIR"
         cp -r "$QLAB_ROOT/plugins/$pname" "$PLUGIN_DIR/$pname"
         success "Installed bundled plugin '$pname'."
 
         if [[ -f "$PLUGIN_DIR/$pname/install.sh" ]]; then
             info "Running install script for '$pname'..."
-            (cd "$PLUGIN_DIR/$pname" && bash install.sh)
+            if ! (cd "$PLUGIN_DIR/$pname" && bash install.sh); then
+                error "Install script failed for '$pname'."
+                rm -rf "${PLUGIN_DIR:?}/$pname"
+                return 1
+            fi
         fi
         return 0
     fi
@@ -122,12 +170,22 @@ run_plugin() {
     # Export absolute WORKSPACE_DIR so the plugin uses the project-level workspace
     local abs_workspace
     abs_workspace="$(cd "$WORKSPACE_DIR" && pwd)"
-    
+
     # Export SSH public key for cloud-init provisioning
     local pub_key
     pub_key=$(get_ssh_public_key)
 
-    (cd "$PLUGIN_DIR/$pname" && WORKSPACE_DIR="$abs_workspace" QLAB_SSH_PUB_KEY="$pub_key" bash run.sh)
+    # Export default VM settings from config so plugins can use them as fallbacks
+    local default_memory default_cpus
+    default_memory=$(get_config DEFAULT_MEMORY "1024")
+    default_cpus=$(get_config DEFAULT_CPUS "1")
+
+    (cd "$PLUGIN_DIR/$pname" && \
+        WORKSPACE_DIR="$abs_workspace" \
+        QLAB_SSH_PUB_KEY="$pub_key" \
+        QLAB_DEFAULT_MEMORY="$default_memory" \
+        QLAB_DEFAULT_CPUS="$default_cpus" \
+        bash run.sh)
 }
 
 uninstall_plugin() {

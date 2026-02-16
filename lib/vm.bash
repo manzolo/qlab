@@ -64,7 +64,7 @@ _port_is_allocated() {
     grep -qx "$port" "$alloc_file" 2>/dev/null
 }
 
-# Record a port in the allocated ports file
+# Record a port in the allocated ports file (no lock — caller must hold .port_lock)
 # Usage: _record_allocated_port port
 _record_allocated_port() {
     local port="$1"
@@ -72,19 +72,24 @@ _record_allocated_port() {
     echo "$port" >> "$STATE_DIR/.allocated_ports"
 }
 
-# Remove a port from the allocated ports file
+# Remove a port from the allocated ports file (flock-protected)
 # Usage: _release_allocated_port port
 _release_allocated_port() {
     local port="$1"
     local alloc_file="$STATE_DIR/.allocated_ports"
+    local lock_file="$STATE_DIR/.port_lock"
     [[ -f "$alloc_file" ]] || return 0
-    local tmp
-    tmp=$(grep -vx "$port" "$alloc_file" 2>/dev/null || true)
-    if [[ -n "$tmp" ]]; then
-        echo "$tmp" > "$alloc_file"
-    else
-        rm -f "$alloc_file"
-    fi
+    mkdir -p "$STATE_DIR"
+    (
+        flock -w 10 200 || { echo "ERROR: could not acquire port lock" >&2; return 1; }
+        local tmp
+        tmp=$(grep -vx "$port" "$alloc_file" 2>/dev/null || true)
+        if [[ -n "$tmp" ]]; then
+            echo "$tmp" > "$alloc_file"
+        else
+            rm -f "$alloc_file"
+        fi
+    ) 200>"$lock_file"
 }
 
 # Allocate a free TCP port (from 2222 upward)
@@ -250,9 +255,13 @@ start_vm() {
     # Check that all forwarded host ports are available
     check_all_ports "$ssh_port" "$netdev_opts" || return 1
 
+    # CPU count: use QLAB_DEFAULT_CPUS if set, otherwise 1
+    local cpus="${QLAB_CPUS:-${QLAB_DEFAULT_CPUS:-1}}"
+
     local qemu_args=(
         qemu-system-x86_64
         -m "$memory"
+        -smp "$cpus"
         -display none
         -serial "file:$log_file"
         -monitor none
@@ -281,6 +290,7 @@ start_vm() {
     info "Starting VM '$plugin_name' in background..."
     echo "  Disk:     $disk_path"
     echo "  Memory:   ${memory}MB"
+    echo "  CPUs:     $cpus"
     echo "  SSH port: $ssh_port"
     echo "  Log:      $log_file"
     if [[ -n "$cdrom_path" ]]; then
@@ -305,12 +315,8 @@ start_vm() {
     # Save all forwarded ports (format: proto:host_port:guest_port)
     printf '%s\n' "${port_entries[@]}" > "$STATE_DIR/${plugin_name}.ports"
 
-    # Release allocated port tracking (QEMU now owns the bind)
-    for entry in "${port_entries[@]}"; do
-        local p
-        p=$(echo "$entry" | cut -d: -f2)
-        _release_allocated_port "$p"
-    done
+    # Ports remain tracked in .allocated_ports while the VM is running.
+    # They are released in stop_vm() when the VM is stopped.
 
     # Expose SSH port to calling plugin (used by plugins, not this file)
     # shellcheck disable=SC2034
@@ -360,6 +366,14 @@ stop_vm() {
     if kill -0 "$pid" 2>/dev/null; then
         warn "Graceful shutdown timed out, forcing..."
         kill -9 "$pid" 2>/dev/null || true
+    fi
+
+    # Release allocated ports tracked for this VM
+    local ports_file="$STATE_DIR/${plugin_name}.ports"
+    if [[ -f "$ports_file" ]]; then
+        while IFS=: read -r _proto host_port _guest; do
+            [[ -n "$host_port" ]] && _release_allocated_port "$host_port"
+        done < "$ports_file"
     fi
 
     rm -f "$pid_file" "$STATE_DIR/${plugin_name}.port" "$STATE_DIR/${plugin_name}.ports"

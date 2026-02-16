@@ -31,7 +31,10 @@ load_registry() {
         # Remote registry
         check_dependency curl || return 1
         local tmp_file
-        tmp_file=$(mktemp)
+        tmp_file=$(mktemp) || {
+            error "Failed to create temporary file."
+            return 1
+        }
         if curl -sL -o "$tmp_file" "$registry_url" 2>/dev/null; then
             if jq '.' "$tmp_file" >/dev/null 2>&1; then
                 REGISTRY_DATA=$(jq '.' "$tmp_file")
