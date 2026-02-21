@@ -105,6 +105,7 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | LDAP with OpenLDAP, phpLDAPadmin, and client for directory services |
 | [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | Mail server with Postfix and Dovecot, send/receive between 2 clients (3 VMs) |
 | [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | File sharing with FTP, NFS, and Samba servers plus shared client (4 VMs) |
+| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | PAM authentication: modules, policies, 2FA, LDAP integration with sssd (3 VMs) |
 
 List them from the CLI: `qlab list available`
 
