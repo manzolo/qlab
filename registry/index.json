@@ -98,7 +98,7 @@
   {
     "name": "pam-lab",
     "description": "PAM authentication lab: modules, policies, 2FA, LDAP integration with sssd",
-    "version": "1.0",
+    "version": "1.1",
     "git_url": "https://github.com/manzolo/qlab-plugin-pam-lab.git"
   }
 ]
