@@ -94,5 +94,11 @@
     "description": "File sharing lab comparing FTP, NFS and Samba protocols with dedicated servers and a shared client",
     "version": "1.2",
     "git_url": "https://github.com/manzolo/qlab-plugin-filesharing-lab.git"
+  },
+  {
+    "name": "pam-lab",
+    "description": "PAM authentication lab: modules, policies, 2FA, LDAP integration with sssd",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-pam-lab.git"
   }
 ]
