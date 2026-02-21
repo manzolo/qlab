@@ -32,6 +32,8 @@ my-plugin/
 ├── plugin.conf    # Required: JSON metadata (name, version, description)
 ├── install.sh     # Optional: runs on install (failure aborts installation)
 ├── run.sh         # Required: main entry point
+├── tests/         # Optional: automated tests
+│   └── run_all.sh # Entry point for `qlab test <name>`
 └── README.md      # Recommended: documentation
 ```
 
@@ -424,6 +426,7 @@ With the naming convention:
 13. **README.md** — document objectives, credentials, and how to interact
 14. The plugin repo should be named `qlab-plugin-<name>` on GitHub
 15. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
+16. **Automated tests** — plugins can provide a `tests/run_all.sh` script that verifies lab exercises. Run via `qlab test <name>`. The script should assume VM(s) are already running and use SSH to check expected state (services, files, configurations). Exit 0 on all-pass, non-zero on failure.
 
 ## Example: hello-lab registry entry
 
@@ -451,6 +454,7 @@ qlab install ./<plugin-dir>     # install from local path
 qlab run <plugin-name>
 qlab shell <plugin-name>
 qlab ports                       # check allocated ports
+qlab test <plugin-name>          # run automated tests (if provided)
 qlab stop <plugin-name>
 ```
 

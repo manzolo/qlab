@@ -405,6 +405,14 @@ cmd_ports() {
     list_running_vms
 }
 
+cmd_test() {
+    if [[ $# -eq 0 ]]; then
+        error "Usage: qlab test <plugin-name>"
+        return 1
+    fi
+    test_plugin "$1"
+}
+
 cmd_list() {
     local sub="${1:-installed}"
     case "$sub" in
@@ -443,6 +451,7 @@ Commands:
   shell         Open SSH shell to a running VM (waits for cloud-init)
   stop          Stop a running VM
   log           Show VM boot log (tail -f)
+  test          Run automated tests for a plugin
   list          List plugins
   ports         Show SSH port map and conflicts
 
@@ -457,6 +466,7 @@ Examples:
   qlab shell --no-wait hello-lab   # connects immediately
   qlab stop hello-lab
   qlab log hello-lab
+  qlab test pam-lab
   qlab reset hello-lab
   qlab list installed
   qlab list available
@@ -481,6 +491,7 @@ main() {
         shell)      shift; cmd_shell "$@" ;;
         stop)       shift; cmd_stop "$@" ;;
         log)        shift; cmd_log "$@" ;;
+        test)       shift; cmd_test "$@" ;;
         list)       shift; cmd_list "$@" ;;
         ports)      shift; cmd_ports "$@" ;;
         -h|--help)  usage ;;

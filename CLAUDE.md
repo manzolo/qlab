@@ -84,4 +84,5 @@ bash tests/test_registry_plugins.sh --no-vm  # quick test (install/uninstall onl
 - Plugins should not hardcode disk sizes — use `${QLAB_DISK_SIZE:-}` to let central config control it
 - Plugins can use `QLAB_DEFAULT_MEMORY` and `QLAB_DEFAULT_CPUS` (exported by `run_plugin`) as fallbacks
 - Plugin git repos are named `qlab-plugin-<name>` on GitHub
+- Plugins can provide automated tests in `tests/run_all.sh` (run via `qlab test <name>`)
 - New plugins can be generated using the prompt template in `doc/CREATE_PLUGIN_PROMPT.md`

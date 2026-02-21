@@ -188,6 +188,47 @@ run_plugin() {
         bash run.sh)
 }
 
+test_plugin() {
+    local pname="$1"
+    validate_plugin_name "$pname" || return 1
+
+    if [[ ! -d "$PLUGIN_DIR/$pname" ]]; then
+        error "Plugin '$pname' is not installed. Run 'qlab install $pname' first."
+        return 1
+    fi
+
+    if [[ ! -f "$PLUGIN_DIR/$pname/tests/run_all.sh" ]]; then
+        warn "Plugin '$pname' does not provide automated tests (no tests/run_all.sh)."
+        return 1
+    fi
+
+    # Check that at least one VM is running for this plugin (exact or prefix match)
+    local has_vm=0
+    if [[ -f "$STATE_DIR/${pname}.pid" ]] && is_vm_running "$pname"; then
+        has_vm=1
+    fi
+    if [[ $has_vm -eq 0 ]]; then
+        for pidfile in "$STATE_DIR/${pname}"-*.pid; do
+            [[ -f "$pidfile" ]] || continue
+            local vm_name
+            vm_name="$(basename "$pidfile" .pid)"
+            if is_vm_running "$vm_name"; then
+                has_vm=1
+                break
+            fi
+        done
+    fi
+
+    if [[ $has_vm -eq 0 ]]; then
+        error "No running VMs found for '$pname'. Start the lab first with 'qlab run $pname'."
+        return 1
+    fi
+
+    info "Running tests for plugin '$pname'..."
+    echo ""
+    (cd "$PLUGIN_DIR/$pname" && bash tests/run_all.sh)
+}
+
 uninstall_plugin() {
     local pname="$1"
     validate_plugin_name "$pname" || return 1
