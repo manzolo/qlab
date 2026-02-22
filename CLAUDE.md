@@ -10,7 +10,7 @@ QLab is a modular CLI for QEMU/KVM educational labs, written in pure Bash. Each 
 
 ```bash
 # Lint
-shellcheck bin/qlab lib/*.bash
+shellcheck bin/qlab bin/qlab-manager lib/*.bash
 
 # Run tests (ShellSpec must be installed first)
 curl -fsSL https://git.io/shellspec | sh -s -- --yes   # one-time install
@@ -30,7 +30,7 @@ CI (`.github/workflows/ci.yml`) runs shellcheck, shellspec, an integration test 
 
 ## Architecture
 
-**Entry point:** `bin/qlab` — sources all `lib/*.bash`, then dispatches via a `case` statement in `main()`. A symlink `./qlab -> bin/qlab` exists at the project root.
+**Entry point:** `bin/qlab` — sources all `lib/*.bash`, then dispatches via a `case` statement in `main()`. A symlink `./qlab -> bin/qlab` exists at the project root. The `manager` command launches `bin/qlab-manager`, a standalone TUI built with `dialog` that provides interactive access to all QLab operations (init, install, run, status, shell, stop, uninstall, ports, log).
 
 **Libraries (`lib/*.bash`)** — each file is sourced into the same shell; they share global state:
 

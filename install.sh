@@ -175,20 +175,57 @@ create_symlink() {
         current="$(readlink "$link")"
         if [[ "$current" == "$target" ]]; then
             success "Symlink already correct: $link -> $target"
-            return 0
+        else
+            info "Updating symlink: $link -> $target (was $current)"
+            rm "$link"
+            if [[ "$INSTALL_MODE" == "system" && $EUID -ne 0 ]]; then
+                sudo ln -s "$target" "$link"
+            else
+                ln -s "$target" "$link"
+            fi
+            success "Created symlink: $link -> $target"
         fi
-        info "Updating symlink: $link -> $target (was $current)"
-        rm "$link"
     elif [[ -e "$link" ]]; then
         die "$link exists and is not a symlink. Please remove it first."
+    else
+        if [[ "$INSTALL_MODE" == "system" && $EUID -ne 0 ]]; then
+            sudo ln -s "$target" "$link"
+        else
+            ln -s "$target" "$link"
+        fi
+        success "Created symlink: $link -> $target"
     fi
 
-    if [[ "$INSTALL_MODE" == "system" && $EUID -ne 0 ]]; then
-        sudo ln -s "$target" "$link"
-    else
-        ln -s "$target" "$link"
+    # Also symlink qlab-manager for direct access
+    local mgr_target="$QLAB_DIR/bin/qlab-manager"
+    if [[ -f "$mgr_target" ]]; then
+        local mgr_link
+        if [[ "$INSTALL_MODE" == "system" ]]; then
+            mgr_link="/usr/local/bin/qlab-manager"
+        else
+            mgr_link="${HOME}/.local/bin/qlab-manager"
+        fi
+
+        if [[ -L "$mgr_link" ]]; then
+            local mgr_current
+            mgr_current="$(readlink "$mgr_link")"
+            if [[ "$mgr_current" != "$mgr_target" ]]; then
+                rm "$mgr_link"
+                if [[ "$INSTALL_MODE" == "system" && $EUID -ne 0 ]]; then
+                    sudo ln -s "$mgr_target" "$mgr_link"
+                else
+                    ln -s "$mgr_target" "$mgr_link"
+                fi
+            fi
+        elif [[ ! -e "$mgr_link" ]]; then
+            if [[ "$INSTALL_MODE" == "system" && $EUID -ne 0 ]]; then
+                sudo ln -s "$mgr_target" "$mgr_link"
+            else
+                ln -s "$mgr_target" "$mgr_link"
+            fi
+        fi
+        success "Symlink ready: $mgr_link -> $mgr_target"
     fi
-    success "Created symlink: $link -> $target"
 }
 
 # --- Step 4: Verify ---

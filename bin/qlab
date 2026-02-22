@@ -456,6 +456,7 @@ Commands:
   test          Run automated tests for a plugin
   list          List plugins
   ports         Show SSH port map and conflicts
+  manager       Open interactive TUI (requires dialog)
 
 Options:
   -h, --help    Show this help message
@@ -497,6 +498,7 @@ main() {
         test)       shift; cmd_test "$@" ;;
         list)       shift; cmd_list "$@" ;;
         ports)      shift; cmd_ports "$@" ;;
+        manager)    shift; exec "$QLAB_ROOT/bin/qlab-manager" "$@" ;;
         -h|--help)  usage ;;
         *)
             echo "Error: unknown command '$1'"

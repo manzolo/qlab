@@ -29,6 +29,16 @@ qlab install hello-lab
 qlab run hello-lab
 ```
 
+## Interactive Manager (TUI)
+
+QLab includes an interactive terminal interface for managing the full workflow without memorizing commands:
+
+```bash
+qlab manager
+```
+
+Requires `dialog` (`sudo apt install dialog`). The TUI lets you initialize the workspace, install and start labs from the registry, check VM status, open SSH shells, view logs, and more — all from a menu-driven interface.
+
 ## Installation
 
 ### From source
@@ -80,6 +90,7 @@ Or from a local clone: `git pull` inside the qlab directory.
 | `qlab ports` | Show SSH port map and detect conflicts |
 | `qlab status` | Show workspace and VM status |
 | `qlab uninstall <name>` | Remove a plugin |
+| `qlab manager` | Open interactive TUI (requires `dialog`) |
 
 Default VM credentials: `labuser` / `labpass`. Each lab uses overlay disks so base images are never modified. SSH keys are auto-generated per workspace for passwordless login.
 

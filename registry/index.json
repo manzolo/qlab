@@ -100,5 +100,11 @@
     "description": "PAM authentication lab: modules, policies, 2FA, LDAP integration with sssd",
     "version": "1.6",
     "git_url": "https://github.com/manzolo/qlab-plugin-pam-lab.git"
+  },
+  {
+    "name": "postgres-lab",
+    "description": "PostgreSQL lab with pgAdmin for database management, users, and backups",
+    "version": "1.5",
+    "git_url": "https://github.com/manzolo/qlab-plugin-postgres-lab.git"
   }
 ]

@@ -1,0 +1,597 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# QLab Manager - Interactive TUI for QLab using dialog
+# Usage: qlab manager
+
+# --- Resolve QLAB_ROOT ---
+QLAB_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$QLAB_SOURCE" ]]; do
+    QLAB_SOURCE="$(readlink "$QLAB_SOURCE")"
+done
+QLAB_ROOT="$(cd "$(dirname "$QLAB_SOURCE")/.." && pwd)"
+export QLAB_ROOT
+
+# Source all library files
+for lib_file in "$QLAB_ROOT"/lib/*.bash; do
+    # shellcheck source=/dev/null
+    [[ -f "$lib_file" ]] && source "$lib_file"
+done
+
+# Workspace directory
+WORKSPACE_DIR=".qlab"
+
+# Load config if workspace is initialized
+_mgr_load_config() {
+    local conf="$WORKSPACE_DIR/qlab.conf"
+    if [[ -f "$conf" ]]; then
+        load_config "$conf"
+        ensure_ssh_key
+    fi
+}
+
+# --- Dialog helpers ---
+
+BACKTITLE="QLab Manager"
+
+# Run a command and show output in a programbox
+_run_with_progress() {
+    local title="$1"
+    shift
+    local tmpfile
+    tmpfile=$(mktemp)
+    # Run command, capture output to temp file, show in programbox
+    "$@" > "$tmpfile" 2>&1 &
+    local cmd_pid=$!
+    dialog --backtitle "$BACKTITLE" --title "$title" \
+        --programbox 20 76 < <(tail -f "$tmpfile" 2>/dev/null &
+            local tail_pid=$!
+            wait "$cmd_pid" 2>/dev/null
+            sleep 0.5
+            kill "$tail_pid" 2>/dev/null || true) || true
+    local exit_code=0
+    wait "$cmd_pid" 2>/dev/null || exit_code=$?
+    rm -f "$tmpfile"
+    return "$exit_code"
+}
+
+# Get list of running VMs as "name:port" pairs
+_get_running_vms() {
+    local state_dir="$WORKSPACE_DIR/state"
+    if [[ ! -d "$state_dir" ]]; then
+        return
+    fi
+    for pidfile in "$state_dir"/*.pid; do
+        [[ -f "$pidfile" ]] || continue
+        local vm_name pid ssh_port
+        vm_name="$(basename "$pidfile" .pid)"
+        pid=$(cat "$pidfile")
+        if _is_qemu_process "$pid"; then
+            ssh_port="?"
+            if [[ -f "$state_dir/${vm_name}.port" ]]; then
+                ssh_port=$(cat "$state_dir/${vm_name}.port")
+            fi
+            echo "${vm_name}:${ssh_port}"
+        fi
+    done
+}
+
+# Get list of installed plugins as "name:description" pairs
+_get_installed() {
+    local plugin_dir="$WORKSPACE_DIR/plugins"
+    if [[ ! -d "$plugin_dir" ]]; then
+        return
+    fi
+    for pdir in "$plugin_dir"/*/; do
+        [[ -d "$pdir" ]] || continue
+        local pname pdesc
+        pname="$(basename "$pdir")"
+        pdesc="(no description)"
+        if [[ -f "$pdir/plugin.conf" ]]; then
+            pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
+        fi
+        echo "${pname}:${pdesc}"
+    done
+}
+
+# Get list of available plugins from registry as "name:description" pairs
+_get_available() {
+    load_registry || return 1
+    echo "$REGISTRY_DATA" | jq -r '.[] | "\(.name):\(.description)"'
+}
+
+# Show a message box
+_msgbox() {
+    local title="$1"
+    local msg="$2"
+    dialog --backtitle "$BACKTITLE" --title "$title" --msgbox "$msg" 12 60 || true
+}
+
+# --- Menu actions ---
+
+_action_init() {
+    if [[ -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Initialize" "Workspace is already initialized at $(cd "$WORKSPACE_DIR" && pwd)."
+        return
+    fi
+    local tmpfile
+    tmpfile=$(mktemp)
+    cmd_init > "$tmpfile" 2>&1 || true
+    local output
+    output=$(cat "$tmpfile")
+    rm -f "$tmpfile"
+    _msgbox "Initialize" "${output:-Workspace initialized successfully.}"
+}
+
+# cmd_init from qlab (inline since it's not exported)
+cmd_init() {
+    if [[ -d "$WORKSPACE_DIR" ]]; then
+        info "Workspace already initialized at $WORKSPACE_DIR/"
+        return 0
+    fi
+
+    mkdir -p "$WORKSPACE_DIR"/{disks,state,plugins,images,cache,logs}
+
+    if [[ ! -f "$WORKSPACE_DIR/qlab.conf" ]]; then
+        cp "$QLAB_ROOT/etc/qlab.conf.example" "$WORKSPACE_DIR/qlab.conf"
+    fi
+
+    ensure_ssh_key
+    success "Workspace initialized at $WORKSPACE_DIR/"
+}
+
+_action_install() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Install Lab" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    # Load available plugins from registry
+    local plugins=()
+    while IFS=: read -r name desc; do
+        [[ -n "$name" ]] || continue
+        plugins+=("$name" "$desc")
+    done < <(_get_available 2>/dev/null)
+
+    if [[ ${#plugins[@]} -eq 0 ]]; then
+        _msgbox "Install Lab" "No plugins available in registry."
+        return
+    fi
+
+    local choice
+    choice=$(dialog --backtitle "$BACKTITLE" --title "Install Lab" \
+        --menu "Select a lab to install:" 20 76 12 \
+        "${plugins[@]}" 3>&1 1>&2 2>&3) || return 0
+
+    [[ -n "$choice" ]] || return 0
+
+    # Check if already installed
+    if [[ -d "$WORKSPACE_DIR/plugins/$choice" ]]; then
+        _msgbox "Install Lab" "Plugin '$choice' is already installed."
+        return
+    fi
+
+    # Look up in registry and install
+    local git_url reg_version
+    git_url=$(get_plugin_git_url "$choice" 2>/dev/null || true)
+    reg_version=$(get_plugin_version "$choice" 2>/dev/null || true)
+
+    if [[ -z "$git_url" ]]; then
+        _msgbox "Install Lab" "Could not find git URL for '$choice'."
+        return
+    fi
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    (
+        info "Installing '$choice' from registry..."
+        install_plugin "$git_url" "$reg_version"
+    ) > "$tmpfile" 2>&1 || true
+
+    dialog --backtitle "$BACKTITLE" --title "Install: $choice" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_run() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Start Lab" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local plugins=()
+    while IFS=: read -r name desc; do
+        [[ -n "$name" ]] || continue
+        plugins+=("$name" "$desc")
+    done < <(_get_installed)
+
+    if [[ ${#plugins[@]} -eq 0 ]]; then
+        _msgbox "Start Lab" "No plugins installed. Install a lab first."
+        return
+    fi
+
+    local choice
+    choice=$(dialog --backtitle "$BACKTITLE" --title "Start Lab" \
+        --menu "Select a lab to start:" 20 76 12 \
+        "${plugins[@]}" 3>&1 1>&2 2>&3) || return 0
+
+    [[ -n "$choice" ]] || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    run_plugin "$choice" > "$tmpfile" 2>&1 || true
+
+    dialog --backtitle "$BACKTITLE" --title "Start: $choice" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_status() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "VM Status" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    {
+        echo "Workspace: $(cd "$WORKSPACE_DIR" && pwd)"
+        echo ""
+        echo "Installed Plugins:"
+        local plugin_count=0
+        if [[ -d "$WORKSPACE_DIR/plugins" ]]; then
+            for pdir in "$WORKSPACE_DIR/plugins"/*/; do
+                [[ -d "$pdir" ]] || continue
+                local pname pdesc
+                pname="$(basename "$pdir")"
+                pdesc="(no description)"
+                if [[ -f "$pdir/plugin.conf" ]]; then
+                    pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
+                fi
+                echo "  - $pname: $pdesc"
+                plugin_count=$((plugin_count + 1))
+            done
+        fi
+        if [[ $plugin_count -eq 0 ]]; then
+            echo "  (none)"
+        fi
+        echo ""
+        echo "Running VMs:"
+        list_running_vms
+    } > "$tmpfile"
+
+    dialog --backtitle "$BACKTITLE" --title "VM Status" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_shell() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "SSH Shell" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local vms=()
+    while IFS=: read -r name port; do
+        [[ -n "$name" ]] || continue
+        vms+=("$name" "SSH port: $port")
+    done < <(_get_running_vms)
+
+    if [[ ${#vms[@]} -eq 0 ]]; then
+        _msgbox "SSH Shell" "No running VMs found. Start a lab first."
+        return
+    fi
+
+    local vm_name
+    if [[ ${#vms[@]} -eq 2 ]]; then
+        # Only one VM, use it directly
+        vm_name="${vms[0]}"
+    else
+        vm_name=$(dialog --backtitle "$BACKTITLE" --title "SSH Shell" \
+            --menu "Select a VM to connect:" 20 76 12 \
+            "${vms[@]}" 3>&1 1>&2 2>&3) || return 0
+    fi
+
+    [[ -n "$vm_name" ]] || return 0
+
+    # Clear dialog and screen, then open interactive SSH
+    dialog --clear 2>/dev/null || true
+    clear
+    echo "Connecting to $vm_name (press Ctrl+D or type 'exit' to return to TUI)..."
+    echo ""
+    shell_vm "$vm_name" "labuser" "--no-wait" "" || true
+    # After SSH exits, TUI will restart via the main loop
+    echo ""
+    echo "Press Enter to return to QLab Manager..."
+    read -r
+}
+
+_action_stop() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Stop Lab" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local vms=()
+    while IFS=: read -r name port; do
+        [[ -n "$name" ]] || continue
+        vms+=("$name" "SSH port: $port")
+    done < <(_get_running_vms)
+
+    if [[ ${#vms[@]} -eq 0 ]]; then
+        _msgbox "Stop Lab" "No running VMs found."
+        return
+    fi
+
+    # Add "ALL" option if multiple VMs
+    local menu_items=()
+    if [[ ${#vms[@]} -gt 2 ]]; then
+        menu_items=("ALL" "Stop all running VMs" "${vms[@]}")
+    else
+        menu_items=("${vms[@]}")
+    fi
+
+    local choice
+    choice=$(dialog --backtitle "$BACKTITLE" --title "Stop Lab" \
+        --menu "Select a VM to stop:" 20 76 12 \
+        "${menu_items[@]}" 3>&1 1>&2 2>&3) || return 0
+
+    [[ -n "$choice" ]] || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    if [[ "$choice" == "ALL" ]]; then
+        {
+            local i=0
+            while [[ $i -lt ${#vms[@]} ]]; do
+                local vm="${vms[$i]}"
+                info "Stopping $vm..."
+                stop_vm "$vm" 2>&1 || true
+                i=$((i + 2))
+            done
+        } > "$tmpfile" 2>&1
+    else
+        stop_vm "$choice" > "$tmpfile" 2>&1 || true
+    fi
+
+    dialog --backtitle "$BACKTITLE" --title "Stop Lab" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_uninstall() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Uninstall Lab" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local plugins=()
+    while IFS=: read -r name desc; do
+        [[ -n "$name" ]] || continue
+        plugins+=("$name" "$desc")
+    done < <(_get_installed)
+
+    if [[ ${#plugins[@]} -eq 0 ]]; then
+        _msgbox "Uninstall Lab" "No plugins installed."
+        return
+    fi
+
+    local choice
+    choice=$(dialog --backtitle "$BACKTITLE" --title "Uninstall Lab" \
+        --menu "Select a lab to uninstall:" 20 76 12 \
+        "${plugins[@]}" 3>&1 1>&2 2>&3) || return 0
+
+    [[ -n "$choice" ]] || return 0
+
+    # Confirm
+    dialog --backtitle "$BACKTITLE" --title "Confirm Uninstall" \
+        --yesno "Are you sure you want to uninstall '$choice'?\n\nThis will remove the plugin and all its data." 10 60 || return 0
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    {
+        # Stop VM if running (exact match)
+        if is_vm_running "$choice" 2>/dev/null; then
+            info "Stopping running VM for '$choice'..."
+            stop_vm "$choice" 2>&1 || true
+        fi
+
+        # Stop any sub-VMs matching <name>-*
+        # shellcheck disable=SC2153  # STATE_DIR is defined in lib/vm.bash
+        for pidfile in "$STATE_DIR/${choice}"-*.pid; do
+            [[ -f "$pidfile" ]] || continue
+            local sub_vm
+            sub_vm="$(basename "$pidfile" .pid)"
+            if is_vm_running "$sub_vm" 2>/dev/null; then
+                info "Stopping sub-VM '$sub_vm'..."
+                stop_vm "$sub_vm" 2>&1 || true
+            fi
+        done
+
+        rm -rf "${PLUGIN_DIR:?}/$choice"
+        success "Uninstalled plugin '$choice'."
+    } > "$tmpfile" 2>&1
+
+    dialog --backtitle "$BACKTITLE" --title "Uninstall: $choice" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_ports() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "Active Ports" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    {
+        local state_dir="$WORKSPACE_DIR/state"
+        local has_ports=0
+
+        if [[ -d "$state_dir" ]]; then
+            local entries=()
+            for ports_file in "$state_dir"/*.ports; do
+                [[ -f "$ports_file" ]] || continue
+                local vm_name
+                vm_name="$(basename "$ports_file" .ports)"
+                if ! is_vm_running "$vm_name"; then
+                    continue
+                fi
+                while IFS=: read -r proto host_port guest_port; do
+                    [[ -n "$proto" ]] || continue
+                    entries+=("${host_port}:${vm_name}:${proto}:${guest_port}")
+                    has_ports=1
+                done < "$ports_file"
+            done
+
+            if [[ $has_ports -eq 1 ]]; then
+                IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
+
+                printf "%-8s %-30s %-6s %s\n" "HOST" "VM" "PROTO" "GUEST"
+                printf "%-8s %-30s %-6s %s\n" "--------" "------------------------------" "------" "-----"
+                for entry in "${sorted_entries[@]}"; do
+                    IFS=: read -r host_port vm_name proto guest_port <<< "$entry"
+                    printf "%-8s %-30s %-6s %s\n" "$host_port" "$vm_name" "$proto" "$guest_port"
+                done
+            fi
+        fi
+
+        if [[ $has_ports -eq 0 ]]; then
+            echo "No active port forwards."
+            echo ""
+            echo "Ports are allocated dynamically when VMs start."
+        fi
+
+        echo ""
+        echo "Running VMs:"
+        list_running_vms
+    } > "$tmpfile"
+
+    dialog --backtitle "$BACKTITLE" --title "Active Ports" \
+        --textbox "$tmpfile" 20 76 || true
+    rm -f "$tmpfile"
+}
+
+_action_log() {
+    if [[ ! -d "$WORKSPACE_DIR" ]]; then
+        _msgbox "VM Log" "No workspace found. Please initialize first."
+        return
+    fi
+    _mgr_load_config
+
+    local vms=()
+    while IFS=: read -r name port; do
+        [[ -n "$name" ]] || continue
+        vms+=("$name" "SSH port: $port")
+    done < <(_get_running_vms)
+
+    # Also check for log files of non-running VMs
+    local log_dir="$WORKSPACE_DIR/logs"
+    if [[ -d "$log_dir" ]]; then
+        for logfile in "$log_dir"/*.log; do
+            [[ -f "$logfile" ]] || continue
+            local lname
+            lname="$(basename "$logfile" .log)"
+            # Check if already in list
+            local found=0
+            local i=0
+            while [[ $i -lt ${#vms[@]} ]]; do
+                if [[ "${vms[$i]}" == "$lname" ]]; then
+                    found=1
+                    break
+                fi
+                i=$((i + 2))
+            done
+            if [[ $found -eq 0 ]]; then
+                vms+=("$lname" "(stopped)")
+            fi
+        done
+    fi
+
+    if [[ ${#vms[@]} -eq 0 ]]; then
+        _msgbox "VM Log" "No VM logs found."
+        return
+    fi
+
+    local vm_name
+    if [[ ${#vms[@]} -eq 2 ]]; then
+        vm_name="${vms[0]}"
+    else
+        vm_name=$(dialog --backtitle "$BACKTITLE" --title "VM Log" \
+            --menu "Select a VM to view log:" 20 76 12 \
+            "${vms[@]}" 3>&1 1>&2 2>&3) || return 0
+    fi
+
+    [[ -n "$vm_name" ]] || return 0
+
+    local log_file="$WORKSPACE_DIR/logs/${vm_name}.log"
+    if [[ ! -f "$log_file" ]]; then
+        _msgbox "VM Log" "No log file found for '$vm_name'."
+        return
+    fi
+
+    # Show log in console with less +F (like tail -f, Ctrl+C stops follow, q quits)
+    dialog --clear 2>/dev/null || true
+    clear
+    LESSOPEN="" LESSCLOSE="" less \
+        -P"Log: $vm_name  |  Ctrl+C: stop follow  |  q: back to TUI" +F "$log_file" || true
+}
+
+# --- Main loop ---
+
+_main() {
+    # Check dialog dependency
+    if ! command -v dialog &>/dev/null; then
+        echo "Error: 'dialog' is required but not installed."
+        echo ""
+        echo "Install it with:"
+        echo "  sudo apt install dialog"
+        exit 1
+    fi
+
+    while true; do
+        local choice
+        choice=$(dialog --backtitle "$BACKTITLE" --title "QLab Manager" \
+            --cancel-label "Exit" \
+            --menu "Select an action:" 20 60 10 \
+            "1" "Initialize workspace" \
+            "2" "Install lab" \
+            "3" "Start lab" \
+            "4" "VM Status" \
+            "5" "SSH Shell" \
+            "6" "Stop lab" \
+            "7" "Uninstall lab" \
+            "8" "Active ports" \
+            "9" "VM Log" \
+            "0" "Exit" \
+            3>&1 1>&2 2>&3) || break
+
+        case "$choice" in
+            1) _action_init ;;
+            2) _action_install ;;
+            3) _action_run ;;
+            4) _action_status ;;
+            5) _action_shell ;;
+            6) _action_stop ;;
+            7) _action_uninstall ;;
+            8) _action_ports ;;
+            9) _action_log ;;
+            0) break ;;
+            *) break ;;
+        esac
+    done
+
+    # Clean up dialog artifacts
+    dialog --clear 2>/dev/null || true
+    clear
+}
+
+_main "$@"
