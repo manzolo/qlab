@@ -34,25 +34,17 @@ _mgr_load_config() {
 
 BACKTITLE="QLab Manager"
 
-# Run a command and show output in a programbox
-_run_with_progress() {
-    local title="$1"
-    shift
-    local tmpfile
-    tmpfile=$(mktemp)
-    # Run command, capture output to temp file, show in programbox
-    "$@" > "$tmpfile" 2>&1 &
-    local cmd_pid=$!
-    dialog --backtitle "$BACKTITLE" --title "$title" \
-        --programbox 20 76 < <(tail -f "$tmpfile" 2>/dev/null &
-            local tail_pid=$!
-            wait "$cmd_pid" 2>/dev/null
-            sleep 0.5
-            kill "$tail_pid" 2>/dev/null || true) || true
-    local exit_code=0
-    wait "$cmd_pid" 2>/dev/null || exit_code=$?
-    rm -f "$tmpfile"
-    return "$exit_code"
+# Exit dialog and clear screen for console output
+_enter_console() {
+    dialog --clear 2>/dev/null || true
+    clear
+}
+
+# Wait for Enter, then return to TUI
+_pause() {
+    echo ""
+    echo "Press Enter to return to QLab Manager..."
+    read -r
 }
 
 # Get list of running VMs as "name:port" pairs
@@ -100,7 +92,7 @@ _get_available() {
     echo "$REGISTRY_DATA" | jq -r '.[] | "\(.name):\(.description)"'
 }
 
-# Show a message box
+# Show a message box (kept for short messages before menu selection)
 _msgbox() {
     local title="$1"
     local msg="$2"
@@ -114,13 +106,9 @@ _action_init() {
         _msgbox "Initialize" "Workspace is already initialized at $(cd "$WORKSPACE_DIR" && pwd)."
         return
     fi
-    local tmpfile
-    tmpfile=$(mktemp)
-    cmd_init > "$tmpfile" 2>&1 || true
-    local output
-    output=$(cat "$tmpfile")
-    rm -f "$tmpfile"
-    _msgbox "Initialize" "${output:-Workspace initialized successfully.}"
+    _enter_console
+    cmd_init || true
+    _pause
 }
 
 # cmd_init from qlab (inline since it's not exported)
@@ -182,16 +170,10 @@ _action_install() {
         return
     fi
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    (
-        info "Installing '$choice' from registry..."
-        install_plugin "$git_url" "$reg_version"
-    ) > "$tmpfile" 2>&1 || true
-
-    dialog --backtitle "$BACKTITLE" --title "Install: $choice" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    _enter_console
+    info "Installing '$choice' from registry..."
+    install_plugin "$git_url" "$reg_version" || true
+    _pause
 }
 
 _action_run() {
@@ -219,13 +201,9 @@ _action_run() {
 
     [[ -n "$choice" ]] || return 0
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    run_plugin "$choice" > "$tmpfile" 2>&1 || true
-
-    dialog --backtitle "$BACKTITLE" --title "Start: $choice" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    _enter_console
+    run_plugin "$choice" || true
+    _pause
 }
 
 _action_status() {
@@ -235,37 +213,34 @@ _action_status() {
     fi
     _mgr_load_config
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    {
-        echo "Workspace: $(cd "$WORKSPACE_DIR" && pwd)"
-        echo ""
-        echo "Installed Plugins:"
-        local plugin_count=0
-        if [[ -d "$WORKSPACE_DIR/plugins" ]]; then
-            for pdir in "$WORKSPACE_DIR/plugins"/*/; do
-                [[ -d "$pdir" ]] || continue
-                local pname pdesc
-                pname="$(basename "$pdir")"
-                pdesc="(no description)"
-                if [[ -f "$pdir/plugin.conf" ]]; then
-                    pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
-                fi
-                echo "  - $pname: $pdesc"
-                plugin_count=$((plugin_count + 1))
-            done
-        fi
-        if [[ $plugin_count -eq 0 ]]; then
-            echo "  (none)"
-        fi
-        echo ""
-        echo "Running VMs:"
-        list_running_vms
-    } > "$tmpfile"
+    _enter_console
+    echo "${BOLD}QLab Workspace Status${RESET}"
+    echo "  Workspace path:  $(cd "$WORKSPACE_DIR" && pwd)"
+    echo ""
 
-    dialog --backtitle "$BACKTITLE" --title "VM Status" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    echo "${BOLD}Installed Plugins:${RESET}"
+    local plugin_count=0
+    if [[ -d "$WORKSPACE_DIR/plugins" ]]; then
+        for pdir in "$WORKSPACE_DIR/plugins"/*/; do
+            [[ -d "$pdir" ]] || continue
+            local pname pdesc
+            pname="$(basename "$pdir")"
+            pdesc="(no description)"
+            if [[ -f "$pdir/plugin.conf" ]]; then
+                pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
+            fi
+            echo "  - $pname: $pdesc"
+            plugin_count=$((plugin_count + 1))
+        done
+    fi
+    if [[ $plugin_count -eq 0 ]]; then
+        echo "  (none)"
+    fi
+    echo ""
+
+    echo "${BOLD}Running VMs:${RESET}"
+    list_running_vms
+    _pause
 }
 
 _action_shell() {
@@ -298,16 +273,11 @@ _action_shell() {
 
     [[ -n "$vm_name" ]] || return 0
 
-    # Clear dialog and screen, then open interactive SSH
-    dialog --clear 2>/dev/null || true
-    clear
+    _enter_console
     echo "Connecting to $vm_name (press Ctrl+D or type 'exit' to return to TUI)..."
     echo ""
     shell_vm "$vm_name" "labuser" "--no-wait" "" || true
-    # After SSH exits, TUI will restart via the main loop
-    echo ""
-    echo "Press Enter to return to QLab Manager..."
-    read -r
+    _pause
 }
 
 _action_stop() {
@@ -343,25 +313,18 @@ _action_stop() {
 
     [[ -n "$choice" ]] || return 0
 
-    local tmpfile
-    tmpfile=$(mktemp)
+    _enter_console
     if [[ "$choice" == "ALL" ]]; then
-        {
-            local i=0
-            while [[ $i -lt ${#vms[@]} ]]; do
-                local vm="${vms[$i]}"
-                info "Stopping $vm..."
-                stop_vm "$vm" 2>&1 || true
-                i=$((i + 2))
-            done
-        } > "$tmpfile" 2>&1
+        local i=0
+        while [[ $i -lt ${#vms[@]} ]]; do
+            local vm="${vms[$i]}"
+            stop_vm "$vm" || true
+            i=$((i + 2))
+        done
     else
-        stop_vm "$choice" > "$tmpfile" 2>&1 || true
+        stop_vm "$choice" || true
     fi
-
-    dialog --backtitle "$BACKTITLE" --title "Stop Lab" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    _pause
 }
 
 _action_uninstall() {
@@ -393,34 +356,28 @@ _action_uninstall() {
     dialog --backtitle "$BACKTITLE" --title "Confirm Uninstall" \
         --yesno "Are you sure you want to uninstall '$choice'?\n\nThis will remove the plugin and all its data." 10 60 || return 0
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    {
-        # Stop VM if running (exact match)
-        if is_vm_running "$choice" 2>/dev/null; then
-            info "Stopping running VM for '$choice'..."
-            stop_vm "$choice" 2>&1 || true
+    _enter_console
+    # Stop VM if running (exact match)
+    if is_vm_running "$choice" 2>/dev/null; then
+        info "Stopping running VM for '$choice'..."
+        stop_vm "$choice" || true
+    fi
+
+    # Stop any sub-VMs matching <name>-*
+    # shellcheck disable=SC2153  # STATE_DIR is defined in lib/vm.bash
+    for pidfile in "$STATE_DIR/${choice}"-*.pid; do
+        [[ -f "$pidfile" ]] || continue
+        local sub_vm
+        sub_vm="$(basename "$pidfile" .pid)"
+        if is_vm_running "$sub_vm" 2>/dev/null; then
+            info "Stopping sub-VM '$sub_vm'..."
+            stop_vm "$sub_vm" || true
         fi
+    done
 
-        # Stop any sub-VMs matching <name>-*
-        # shellcheck disable=SC2153  # STATE_DIR is defined in lib/vm.bash
-        for pidfile in "$STATE_DIR/${choice}"-*.pid; do
-            [[ -f "$pidfile" ]] || continue
-            local sub_vm
-            sub_vm="$(basename "$pidfile" .pid)"
-            if is_vm_running "$sub_vm" 2>/dev/null; then
-                info "Stopping sub-VM '$sub_vm'..."
-                stop_vm "$sub_vm" 2>&1 || true
-            fi
-        done
-
-        rm -rf "${PLUGIN_DIR:?}/$choice"
-        success "Uninstalled plugin '$choice'."
-    } > "$tmpfile" 2>&1
-
-    dialog --backtitle "$BACKTITLE" --title "Uninstall: $choice" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    rm -rf "${PLUGIN_DIR:?}/$choice"
+    success "Uninstalled plugin '$choice'."
+    _pause
 }
 
 _action_ports() {
@@ -430,54 +387,53 @@ _action_ports() {
     fi
     _mgr_load_config
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    {
-        local state_dir="$WORKSPACE_DIR/state"
-        local has_ports=0
+    _enter_console
+    echo "${BOLD}Port Map${RESET}"
+    echo ""
 
-        if [[ -d "$state_dir" ]]; then
-            local entries=()
-            for ports_file in "$state_dir"/*.ports; do
-                [[ -f "$ports_file" ]] || continue
-                local vm_name
-                vm_name="$(basename "$ports_file" .ports)"
-                if ! is_vm_running "$vm_name"; then
-                    continue
-                fi
-                while IFS=: read -r proto host_port guest_port; do
-                    [[ -n "$proto" ]] || continue
-                    entries+=("${host_port}:${vm_name}:${proto}:${guest_port}")
-                    has_ports=1
-                done < "$ports_file"
-            done
+    local state_dir="$WORKSPACE_DIR/state"
+    local has_ports=0
 
-            if [[ $has_ports -eq 1 ]]; then
-                IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
-
-                printf "%-8s %-30s %-6s %s\n" "HOST" "VM" "PROTO" "GUEST"
-                printf "%-8s %-30s %-6s %s\n" "--------" "------------------------------" "------" "-----"
-                for entry in "${sorted_entries[@]}"; do
-                    IFS=: read -r host_port vm_name proto guest_port <<< "$entry"
-                    printf "%-8s %-30s %-6s %s\n" "$host_port" "$vm_name" "$proto" "$guest_port"
-                done
+    if [[ -d "$state_dir" ]]; then
+        local entries=()
+        for ports_file in "$state_dir"/*.ports; do
+            [[ -f "$ports_file" ]] || continue
+            local vm_name
+            vm_name="$(basename "$ports_file" .ports)"
+            if ! is_vm_running "$vm_name"; then
+                continue
             fi
-        fi
+            while IFS=: read -r proto host_port guest_port; do
+                [[ -n "$proto" ]] || continue
+                entries+=("${host_port}:${vm_name}:${proto}:${guest_port}")
+                has_ports=1
+            done < "$ports_file"
+        done
 
-        if [[ $has_ports -eq 0 ]]; then
-            echo "No active port forwards."
+        if [[ $has_ports -eq 1 ]]; then
+            IFS=$'\n' read -r -d '' -a sorted_entries < <(printf '%s\n' "${entries[@]}" | sort -t: -k1 -n && printf '\0') || true
+
+            printf "  ${BOLD}%-8s %-30s %-6s %s${RESET}\n" "HOST" "VM" "PROTO" "GUEST"
+            printf "  %-8s %-30s %-6s %s\n" "--------" "------------------------------" "------" "-----"
+            for entry in "${sorted_entries[@]}"; do
+                IFS=: read -r host_port vm_name proto guest_port <<< "$entry"
+                printf "  %-8s %-30s %-6s %s\n" "$host_port" "$vm_name" "$proto" "$guest_port"
+            done
             echo ""
-            echo "Ports are allocated dynamically when VMs start."
         fi
+    fi
 
+    if [[ $has_ports -eq 0 ]]; then
+        echo "  No active port forwards."
         echo ""
-        echo "Running VMs:"
-        list_running_vms
-    } > "$tmpfile"
+        echo "  Ports are allocated dynamically when VMs start."
+        echo "  Run a plugin first: qlab run hello-lab"
+        echo ""
+    fi
 
-    dialog --backtitle "$BACKTITLE" --title "Active Ports" \
-        --textbox "$tmpfile" 20 76 || true
-    rm -f "$tmpfile"
+    echo "${BOLD}Running VMs:${RESET}"
+    list_running_vms
+    _pause
 }
 
 _action_log() {
@@ -539,8 +495,7 @@ _action_log() {
     fi
 
     # Show log in console with less +F (like tail -f, Ctrl+C stops follow, q quits)
-    dialog --clear 2>/dev/null || true
-    clear
+    _enter_console
     LESSOPEN="" LESSCLOSE="" less \
         -P"Log: $vm_name  |  Ctrl+C: stop follow  |  q: back to TUI" +F "$log_file" || true
 }
