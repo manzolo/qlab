@@ -31,9 +31,6 @@ RESET='\033[0m'
 KEEP_WORKSPACE=false
 RUN_VM=true
 SSH_TIMEOUT=180
-CLOUD_INIT_TIMEOUT=300
-SSH_USER="labuser"
-SSH_PASS="labpass"
 
 for arg in "$@"; do
     case "$arg" in
@@ -66,28 +63,24 @@ assert() {
     fi
 }
 
-# SSH helper — run a command on a VM via sshpass
-ssh_cmd() {
-    local port="$1"
-    shift
-    sshpass -p "$SSH_PASS" ssh \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -o ConnectTimeout=5 \
-        -o LogLevel=ERROR \
-        -p "$port" "${SSH_USER}@localhost" "$@"
+# Run a command on a VM via qlab shell
+qlab_shell() {
+    local vm="$1"; shift
+    "$QLAB" shell "$vm" --no-wait -c "$@" 2>/dev/null
 }
 
-# Wait for SSH to become reachable on a given port
+# Wait for VM to be ready (SSH reachable + cloud-init done)
 # Returns 0 on success, 1 on timeout
-wait_for_ssh() {
-    local port="$1"
-    local timeout="$2"
+wait_for_vm_ready() {
+    local vm="$1"
+    local timeout="${2:-$SSH_TIMEOUT}"
     local elapsed=0
     local interval=10
 
     while [[ $elapsed -lt $timeout ]]; do
-        if ssh_cmd "$port" "echo OK" >/dev/null 2>&1; then
+        local status
+        status=$(qlab_shell "$vm" "cloud-init status 2>/dev/null || echo done") || true
+        if echo "$status" | grep -qE "done|disabled|not-available"; then
             return 0
         fi
         sleep "$interval"
@@ -96,30 +89,18 @@ wait_for_ssh() {
     return 1
 }
 
-# Wait for cloud-init to finish on a VM
-wait_for_cloud_init() {
-    local port="$1"
-    local timeout="$2"
-    # cloud-init status --wait blocks until done; wrap with timeout
-    if ssh_cmd "$port" "timeout $timeout cloud-init status --wait" >/dev/null 2>&1; then
-        return 0
-    fi
-    return 1
-}
-
-# Extract SSH ports for a given plugin from .port files in state dir
-# With dynamic port allocation, ports are read from state files, not from run.sh
-get_plugin_ports() {
+# Get VM names for a given plugin from .port files in state dir
+get_plugin_vms() {
     local pname="$1"
     local state_dir="$WORK_DIR/.qlab/state"
     # Exact match
     if [[ -f "$state_dir/${pname}.port" ]]; then
-        cat "$state_dir/${pname}.port"
+        echo "$pname"
     fi
     # Sub-VM match (pname-*)
     for portfile in "$state_dir/${pname}-"*.port; do
         [[ -f "$portfile" ]] || continue
-        cat "$portfile"
+        basename "$portfile" .port
     done
 }
 
@@ -131,7 +112,7 @@ echo ""
 
 if [[ "$RUN_VM" == true ]]; then
     missing_deps=()
-    for cmd in qemu-system-x86_64 qemu-img genisoimage sshpass curl jq; do
+    for cmd in qemu-system-x86_64 qemu-img genisoimage curl jq; do
         if ! command -v "$cmd" &>/dev/null; then
             missing_deps+=("$cmd")
         fi
@@ -143,7 +124,7 @@ if [[ "$RUN_VM" == true ]]; then
         exit 1
     fi
     log_info "Mode: full (install + VM boot + SSH + cloud-init)"
-    log_info "SSH timeout: ${SSH_TIMEOUT}s per VM, cloud-init timeout: ${CLOUD_INIT_TIMEOUT}s"
+    log_info "VM ready timeout: ${SSH_TIMEOUT}s per VM"
 else
     log_info "Mode: quick (install only, --no-vm)"
 fi
@@ -228,43 +209,32 @@ for pname in "${PLUGINS[@]}"; do
             # Try to stop anything that started
             "$QLAB" stop "$pname" >/dev/null 2>&1 || true
         else
-            # Get declared SSH ports for this plugin
-            mapfile -t ports < <(get_plugin_ports "$pname")
+            # Get VM names for this plugin
+            mapfile -t vms < <(get_plugin_vms "$pname")
 
-            if [[ ${#ports[@]} -eq 0 ]]; then
-                log_fail "$pname: no SSH ports found"
+            if [[ ${#vms[@]} -eq 0 ]]; then
+                log_fail "$pname: no VMs found"
                 failed=$((failed + 1))
-                errors+=("$pname: no SSH ports found")
+                errors+=("$pname: no VMs found")
             else
-                log_info "$pname: ${#ports[@]} SSH port(s): ${ports[*]}"
+                log_info "$pname: ${#vms[@]} VM(s): ${vms[*]}"
 
-                for port in "${ports[@]}"; do
-                    # Wait for SSH
-                    log_info "Waiting for SSH on port $port (timeout ${SSH_TIMEOUT}s)..."
-                    if wait_for_ssh "$port" "$SSH_TIMEOUT"; then
-                        assert "$pname: SSH reachable on port $port" true
+                for vm_name in "${vms[@]}"; do
+                    # Wait for VM ready (SSH + cloud-init)
+                    log_info "Waiting for VM $vm_name to be ready (timeout ${SSH_TIMEOUT}s)..."
+                    if wait_for_vm_ready "$vm_name" "$SSH_TIMEOUT"; then
+                        assert "$pname: VM $vm_name ready (SSH + cloud-init)" true
 
-                        # Wait for cloud-init
-                        log_info "Waiting for cloud-init on port $port (timeout ${CLOUD_INIT_TIMEOUT}s)..."
-                        if wait_for_cloud_init "$port" "$CLOUD_INIT_TIMEOUT"; then
-                            assert "$pname: cloud-init completed on port $port" true
-                        else
-                            log_fail "$pname: cloud-init timeout on port $port"
-                            failed=$((failed + 1))
-                            errors+=("$pname: cloud-init timeout on port $port")
-                        fi
-
-                        # Verify basic SSH command
-                        assert "$pname: 'hostname' via SSH on port $port" \
-                            ssh_cmd "$port" "hostname"
-                        assert "$pname: 'uname -a' via SSH on port $port" \
-                            ssh_cmd "$port" "uname -a"
+                        # Verify basic commands
+                        assert "$pname: 'hostname' via qlab shell on $vm_name" \
+                            qlab_shell "$vm_name" "hostname"
+                        assert "$pname: 'uname -a' via qlab shell on $vm_name" \
+                            qlab_shell "$vm_name" "uname -a"
                     else
-                        log_fail "$pname: SSH timeout on port $port after ${SSH_TIMEOUT}s"
+                        log_fail "$pname: VM $vm_name not ready after ${SSH_TIMEOUT}s"
                         failed=$((failed + 1))
-                        errors+=("$pname: SSH timeout on port $port")
-                        log_skip "$pname: cloud-init check on port $port (SSH not available)"
-                        log_skip "$pname: SSH commands on port $port (SSH not available)"
+                        errors+=("$pname: VM $vm_name not ready")
+                        log_skip "$pname: SSH commands on $vm_name (VM not ready)"
                     fi
                 done
             fi
