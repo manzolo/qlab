@@ -288,21 +288,23 @@ cmd_stop() {
 
 cmd_shell() {
     local no_wait=""
+    local command=""
     local args=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --no-wait) no_wait="--no-wait"; shift ;;
+            -c)        command="$2"; shift 2 ;;
             *)         args+=("$1"); shift ;;
         esac
     done
 
     if [[ ${#args[@]} -eq 0 ]]; then
-        error "Usage: qlab shell [--no-wait] <vm-name> [ssh-user]"
+        error "Usage: qlab shell [--no-wait] [-c <command>] <vm-name> [ssh-user]"
         return 1
     fi
 
-    shell_vm "${args[0]}" "${args[1]:-labuser}" "$no_wait"
+    shell_vm "${args[0]}" "${args[1]:-labuser}" "$no_wait" "$command"
 }
 
 cmd_log() {
@@ -448,7 +450,7 @@ Commands:
   install       Install a plugin
   uninstall     Uninstall a plugin
   run           Run a plugin
-  shell         Open SSH shell to a running VM (waits for cloud-init)
+  shell         Open SSH shell or run a command (-c) on a running VM
   stop          Stop a running VM
   log           Show VM boot log (tail -f)
   test          Run automated tests for a plugin
@@ -464,6 +466,7 @@ Examples:
   qlab run hello-lab
   qlab shell hello-lab              # waits for cloud-init
   qlab shell --no-wait hello-lab   # connects immediately
+  qlab shell hello-lab -c "uname -a"  # run a command on the VM
   qlab stop hello-lab
   qlab log hello-lab
   qlab test pam-lab

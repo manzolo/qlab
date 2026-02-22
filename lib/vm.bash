@@ -488,11 +488,12 @@ wait_for_cloud_init() {
 }
 
 # Open an SSH shell to a running VM
-# Usage: shell_vm plugin_name [ssh_user] [--no-wait]
+# Usage: shell_vm plugin_name [ssh_user] [--no-wait] [command]
 shell_vm() {
     local plugin_name="$1"
     local ssh_user="${2:-labuser}"
     local no_wait="${3:-}"
+    local command="${4:-}"
     local pid_file="$STATE_DIR/${plugin_name}.pid"
     local port_file="$STATE_DIR/${plugin_name}.port"
 
@@ -524,14 +525,17 @@ shell_vm() {
         wait_for_cloud_init "$plugin_name" 300 "$ssh_user" || return 1
     fi
 
-    info "Connecting to '$plugin_name' (SSH port $ssh_port, user $ssh_user)..."
-    echo "  Type 'exit' to disconnect."
-    echo ""
-
     local ssh_opts
     read -ra ssh_opts <<< "$(_ssh_opts)"
 
-    ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost"
+    if [[ -n "$command" ]]; then
+        ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost" "$command"
+    else
+        info "Connecting to '$plugin_name' (SSH port $ssh_port, user $ssh_user)..."
+        echo "  Type 'exit' to disconnect."
+        echo ""
+        ssh "${ssh_opts[@]}" -p "$ssh_port" "${ssh_user}@localhost"
+    fi
 }
 
 # List all running VMs with their SSH ports
