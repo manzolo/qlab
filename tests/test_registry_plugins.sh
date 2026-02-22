@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local-only test: install, run VM, verify SSH + cloud-init, stop, and uninstall
+# Local-only test: install, run VM, verify SSH + cloud-init, run plugin tests, stop, and uninstall
 # every plugin in the registry.
 # NOT intended for CI (clones all repos, boots VMs, takes time and bandwidth).
 #
@@ -267,6 +267,20 @@ for pname in "${PLUGINS[@]}"; do
                         log_skip "$pname: SSH commands on port $port (SSH not available)"
                     fi
                 done
+            fi
+
+            # Plugin tests (qlab test)
+            if [[ -f ".qlab/plugins/$pname/tests/run_all.sh" ]]; then
+                log_info "Running plugin tests for $pname (qlab test)..."
+                if "$QLAB" test "$pname" >/dev/null 2>&1; then
+                    assert "$pname: plugin tests passed (qlab test)" true
+                else
+                    log_fail "$pname: plugin tests failed (qlab test)"
+                    failed=$((failed + 1))
+                    errors+=("$pname: plugin tests failed")
+                fi
+            else
+                log_skip "$pname: no plugin tests (tests/run_all.sh not found)"
             fi
 
             # Stop
