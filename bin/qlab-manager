@@ -223,13 +223,15 @@ _action_status() {
     if [[ -d "$WORKSPACE_DIR/plugins" ]]; then
         for pdir in "$WORKSPACE_DIR/plugins"/*/; do
             [[ -d "$pdir" ]] || continue
-            local pname pdesc
+            local pname pver pdesc
             pname="$(basename "$pdir")"
+            pver="?"
             pdesc="(no description)"
             if [[ -f "$pdir/plugin.conf" ]]; then
+                pver=$(jq -r '.version // "?"' "$pdir/plugin.conf" 2>/dev/null || echo "?")
                 pdesc=$(jq -r '.description // "(no description)"' "$pdir/plugin.conf" 2>/dev/null || echo "(no description)")
             fi
-            echo "  - $pname: $pdesc"
+            echo "  - $pname (v$pver) - $pdesc"
             plugin_count=$((plugin_count + 1))
         done
     fi
