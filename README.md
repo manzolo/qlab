@@ -90,6 +90,7 @@ Or from a local clone: `git pull` inside the qlab directory.
 | `qlab ports` | Show SSH port map and detect conflicts |
 | `qlab status` | Show workspace and VM status |
 | `qlab uninstall <name>` | Remove a plugin |
+| `qlab test <name>` | Run a plugin's automated test suite |
 | `qlab manager` | Open interactive TUI (requires `dialog`) |
 
 Default VM credentials: `labuser` / `labpass`. Each lab uses overlay disks so base images are never modified. SSH keys are auto-generated per workspace for passwordless login.
@@ -117,6 +118,8 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | Mail server with Postfix and Dovecot, send/receive between 2 clients (3 VMs) |
 | [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | File sharing with FTP, NFS, and Samba servers plus shared client (4 VMs) |
 | [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | PAM authentication: modules, policies, 2FA, LDAP integration with sssd (3 VMs) |
+| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | PostgreSQL with pgAdmin for database management, users, and backups |
+| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | Machine Learning for network monitoring with Python and scikit-learn |
 
 List them from the CLI: `qlab list available`
 
