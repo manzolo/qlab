@@ -2,15 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## v0.5.0 - Interactive Manager, Plugin Tests, and ml-network-lab
 
 ### Added
 
+- `qlab manager` — interactive console TUI for all QLab operations (init, install, run, status, shell, stop, uninstall, ports, log)
+- `qlab test <plugin>` — runs a plugin's automated test suite (`tests/run_all.sh`)
+- `qlab shell -c <cmd>` — execute a command on a VM via SSH without opening an interactive session
+- `ml-network-lab` plugin: Python + scikit-learn lab for learning Machine Learning applied to network monitoring (Random Forest router health classifier, 7 interactive modules, 42 automated tests)
 - `install.sh` automated installer script (one-liner `curl | bash` or from clone)
 - Automatic dependency installation on Debian/Ubuntu
 - System-wide (`/usr/local/bin`) or user-local (`~/.local/bin`) installation
 - Idempotent: safe to run multiple times
 - `--skip-deps` flag to skip dependency installation
+
+### Changed
+
+- Plugin version shown in `qlab manager` status output
+- Registry integration test uses `qlab shell -c` (drops `sshpass` dependency)
+- Registry updated: pam-lab v1.6, mysql-lab v1.6, postgres-lab v1.7
 
 ## v0.1.1 - Automated SSH Key Management
 
