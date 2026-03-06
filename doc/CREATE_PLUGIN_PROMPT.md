@@ -427,6 +427,9 @@ With the naming convention:
 14. The plugin repo should be named `qlab-plugin-<name>` on GitHub
 15. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
 16. **Automated tests** — plugins can provide a `tests/run_all.sh` script that verifies lab exercises. Run via `qlab test <name>`. The script should assume VM(s) are already running and use SSH to check expected state (services, files, configurations). Exit 0 on all-pass, non-zero on failure.
+17. **`write_files` owner pitfall** — NEVER use `owner: labuser:labuser` (or any non-root user) in `write_files` entries. cloud-init processes `write_files` before `users_groups`, so the user does not yet exist in the filesystem and the entry fails silently, leaving the file uncreated. To write files owned by a normal user: write them to `/tmp/` (no `owner:` needed, root is fine), then in `runcmd` copy them to the target path and `chown` them after the user exists.
+18. **`sudo -u` and HOME** — when running user commands from `runcmd` (which runs as root), always use `sudo -Hu <user>` instead of `sudo -u <user>`. The `-H` flag sets `HOME` to the target user's home directory. Without `-H`, commands like `git config --global` try to write to root's home and fail with Permission denied.
+19. **`git stash push` and untracked files** — `git stash push` without `-u` only stashes tracked modifications, not untracked files. Always use `git stash push -u` when the working tree may contain untracked files, or make the file tracked first (`git add`) before stashing.
 
 ## Example: hello-lab registry entry
 

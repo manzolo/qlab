@@ -112,5 +112,11 @@
     "description": "Machine Learning for network monitoring with Python and scikit-learn",
     "version": "1.0",
     "git_url": "https://github.com/manzolo/qlab-plugin-ml-network-lab.git"
+  },
+  {
+    "name": "git-lab",
+    "description": "Git lab: commits, branches, merge, conflicts, stash, rebase, git flow",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-git-lab.git"
   }
 ]

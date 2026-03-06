@@ -120,6 +120,7 @@ QLab ships with a growing registry of ready-to-use lab plugins. Install any of t
 | [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | PAM authentication: modules, policies, 2FA, LDAP integration with sssd (3 VMs) |
 | [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | PostgreSQL with pgAdmin for database management, users, and backups |
 | [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | Machine Learning for network monitoring with Python and scikit-learn |
+| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | Git version control: commits, branches, merge, conflicts, stash, rebase, git flow |
 
 List them from the CLI: `qlab list available`
 
