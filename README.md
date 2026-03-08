@@ -14,77 +14,18 @@ QLab makes it easy to create, share, and run hands-on virtualization labs. Each 
 ## How It Works
 
 ```mermaid
-flowchart TD
+flowchart LR
     User(["👤 User"])
+    CLI["⌨️ qlab CLI"]
+    Registry(["🗂️ Plugin Registry"])
+    WS["📁 .qlab/ workspace"]
+    VM["🖥️ QEMU/KVM VM\n(cloud-init)"]
 
-    subgraph CLI ["⌨️  QLab CLI  (bin/qlab)"]
-        init["qlab init"]
-        install["qlab install &lt;plugin&gt;"]
-        run["qlab run &lt;plugin&gt;"]
-        shell["qlab shell &lt;plugin&gt;"]
-        stop["qlab stop &lt;plugin&gt;"]
-        manager["qlab manager (TUI)"]
-    end
-
-    subgraph WS ["📁 Workspace  (.qlab/)"]
-        plugins["plugins/"]
-        disks["disks/  (qcow2 overlays)"]
-        images["images/  (base cloud images)"]
-        state["state/  (PID + ports)"]
-        ssh["ssh/  (auto-generated keys)"]
-        logs["logs/  (serial console)"]
-    end
-
-    subgraph Registry ["🗂️  Plugin Registry"]
-        index["index.json"]
-        repos["GitHub repos\nqlab-plugin-*"]
-    end
-
-    subgraph VM ["🖥️  QEMU/KVM Virtual Machine(s)"]
-        qemu["QEMU process"]
-        cloudinit["cloud-init\n(auto-provisioning)"]
-        sshd["SSH daemon"]
-    end
-
-    User --> CLI
-    init -->|"creates"| WS
-    install -->|"clones from"| Registry
-    install -->|"writes to"| plugins
-    run -->|"creates overlay"| disks
-    run -->|"boots"| VM
-    cloudinit -->|"configures"| sshd
-    shell -->|"SSH tunnel"| sshd
-    manager --> CLI
-```
-
-### Typical Workflow
-
-```mermaid
-sequenceDiagram
-    actor Student
-    participant qlab as QLab CLI
-    participant ws as Workspace
-    participant reg as Registry
-    participant vm as QEMU VM
-
-    Student->>qlab: qlab init
-    qlab->>ws: create .qlab/ structure + SSH key pair
-
-    Student->>qlab: qlab install nginx-lab
-    qlab->>reg: fetch index.json
-    reg-->>qlab: git URL + version tag
-    qlab->>ws: clone plugin → plugins/nginx-lab/
-
-    Student->>qlab: qlab run nginx-lab
-    qlab->>ws: download base image (once)
-    qlab->>ws: create qcow2 overlay disk
-    qlab->>vm: launch QEMU (daemonized)
-    vm->>vm: cloud-init provisions OS + services
-    qlab-->>Student: VM ready ✓
-
-    Student->>qlab: qlab shell nginx-lab
-    qlab->>vm: SSH (passwordless, auto key)
-    vm-->>Student: interactive shell
+    User -->|"commands"| CLI
+    CLI -->|"install"| Registry
+    CLI -->|"init / run"| WS
+    WS -->|"boots"| VM
+    User -->|"qlab shell"| VM
 ```
 
 ---
