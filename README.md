@@ -14,19 +14,16 @@ QLab makes it easy to create, share, and run hands-on virtualization labs. Each 
 ## How It Works
 
 ```mermaid
-flowchart LR
-    User(["👤 User"])
-    CLI["⌨️ qlab CLI"]
-    Registry(["🗂️ Plugin Registry"])
+flowchart TD
+    U(["👤 User"])
+    R(["🗂️ Plugin Registry"])
     WS["📁 .qlab/ workspace"]
     VM["🖥️ QEMU/KVM VM (cloud-init)"]
 
-    User -->|"qlab init (once)"| WS
-    User -->|"commands"| CLI
-    CLI -->|"install"| Registry
-    CLI -->|"run"| WS
-    WS -->|"boots"| VM
-    User -->|"qlab shell"| VM
+    U -->|"① qlab init (once)"| WS
+    U -->|"② qlab install"| R -->|"plugin cloned"| WS
+    U -->|"③ qlab run"| WS -->|"boots"| VM
+    U -->|"④ qlab shell"| VM
 ```
 
 ### Lab lifecycle example: `nginx-lab`
