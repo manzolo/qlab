@@ -29,6 +29,22 @@ flowchart LR
     User -->|"qlab shell"| VM
 ```
 
+### Lab lifecycle example: `nginx-lab`
+
+```mermaid
+flowchart TD
+    A(["qlab install nginx-lab"]) --> B["plugin cloned into .qlab/plugins/nginx-lab/"]
+    B --> C(["qlab run nginx-lab"])
+    C --> D["qcow2 overlay disk created"]
+    D --> E["QEMU VM started"]
+    E --> F["cloud-init: installs nginx, configures service"]
+    F --> G{{"VM ready ✓\nSSH port auto-assigned"}}
+    G --> H(["qlab shell nginx-lab"])
+    H --> I["interactive SSH session\n— do the lab —"]
+    I --> J(["qlab stop nginx-lab"])
+    J --> K(["qlab uninstall nginx-lab"])
+```
+
 ---
 
 ## Features
