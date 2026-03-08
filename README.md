@@ -19,11 +19,12 @@ flowchart LR
     CLI["⌨️ qlab CLI"]
     Registry(["🗂️ Plugin Registry"])
     WS["📁 .qlab/ workspace"]
-    VM["🖥️ QEMU/KVM VM\n(cloud-init)"]
+    VM["🖥️ QEMU/KVM VM (cloud-init)"]
 
+    User -->|"qlab init (once)"| WS
     User -->|"commands"| CLI
     CLI -->|"install"| Registry
-    CLI -->|"init / run"| WS
+    CLI -->|"run"| WS
     WS -->|"boots"| VM
     User -->|"qlab shell"| VM
 ```
