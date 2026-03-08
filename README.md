@@ -106,75 +106,28 @@ Default VM credentials: **`labuser`** / **`labpass`** (SSH key login is automati
 
 Install any plugin with `qlab install <name>` or browse them all with `qlab list available`.
 
-**🚀 Getting started**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | 1 | Basic VM boot lab with cloud-init |
-
-**🌐 Web servers**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | 1 | Nginx web server installation and configuration |
-| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | 1 | Apache web server with SSL/TLS and virtual hosts |
-
-**🗄️ Databases**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | 1 | MySQL/MariaDB database management, users, and backups |
-| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | 1 | PostgreSQL with pgAdmin for database management |
-
-**📦 Containers & DevOps**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | 1 | Docker containers and Docker Compose |
-| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | 1 | Git: commits, branches, merge, conflicts, stash, rebase, git flow |
-
-**💾 Storage**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | 1 | LVM with extra virtual disks for PV, VG, and LV management |
-| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | 1 | LVM & ZFS disk management with 4 extra disks |
-
-**⚙️ System administration**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | 1 | Systemd service management, unit files, timers, and journald |
-
-**🔒 Security & authentication**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | 1 | SSH hardening with fail2ban, port knocking, and key auth |
-| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 2 | Firewall with iptables, ufw, and traffic analysis |
-| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 2 | VPN with WireGuard and OpenVPN (server + client) |
-| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
-| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
-
-**🔌 Networking**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 2 | DHCP server/client lab for dynamic IP addressing |
-| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 2 | DNS & BIND9 server/client for record types and zone management |
-
-**📬 Services**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
-| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
-
-**🤖 Advanced**
-
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1 | Machine Learning for network monitoring with Python/scikit-learn |
+| Category | Plugin | VMs | Description |
+|----------|--------|:---:|-------------|
+| 🚀 Getting started | [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | 1 | Basic VM boot lab with cloud-init |
+| 🌐 Web servers | [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | 1 | Nginx web server installation and configuration |
+| 🌐 Web servers | [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | 1 | Apache web server with SSL/TLS and virtual hosts |
+| 🗄️ Databases | [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | 1 | MySQL/MariaDB database management, users, and backups |
+| 🗄️ Databases | [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | 1 | PostgreSQL with pgAdmin for database management |
+| 📦 Containers & DevOps | [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | 1 | Docker containers and Docker Compose |
+| 📦 Containers & DevOps | [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | 1 | Git: commits, branches, merge, conflicts, stash, rebase, git flow |
+| 💾 Storage | [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | 1 | LVM with extra virtual disks for PV, VG, and LV management |
+| 💾 Storage | [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | 1 | LVM & ZFS disk management with 4 extra disks |
+| ⚙️ System | [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | 1 | Systemd service management, unit files, timers, and journald |
+| 🔒 Security & auth | [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | 1 | SSH hardening with fail2ban, port knocking, and key auth |
+| 🔒 Security & auth | [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 2 | Firewall with iptables, ufw, and traffic analysis |
+| 🔒 Security & auth | [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 2 | VPN with WireGuard and OpenVPN (server + client) |
+| 🔒 Security & auth | [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
+| 🔒 Security & auth | [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
+| 🔌 Networking | [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 2 | DHCP server/client lab for dynamic IP addressing |
+| 🔌 Networking | [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 2 | DNS & BIND9 server/client for record types and zone management |
+| 📬 Services | [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
+| 📬 Services | [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
+| 🤖 Advanced | [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1 | Machine Learning for network monitoring with Python/scikit-learn |
 
 ---
 
