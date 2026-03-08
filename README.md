@@ -7,72 +7,124 @@
 
 > **Modular CLI tool for QEMU/KVM educational labs.**
 
-QLab makes it easy to create, share, and run hands-on virtualization labs. Each lab is a plugin that sets up a QEMU virtual machine with a specific configuration, letting students learn by doing.
+QLab makes it easy to create, share, and run hands-on virtualization labs. Each lab is a **plugin** that spins up one or more QEMU virtual machines, fully provisioned via cloud-init — so students learn by doing, with zero manual setup.
+
+---
+
+## How It Works
+
+```mermaid
+flowchart TD
+    User(["👤 User"])
+
+    subgraph CLI ["⌨️  QLab CLI  (bin/qlab)"]
+        init["qlab init"]
+        install["qlab install &lt;plugin&gt;"]
+        run["qlab run &lt;plugin&gt;"]
+        shell["qlab shell &lt;plugin&gt;"]
+        stop["qlab stop &lt;plugin&gt;"]
+        manager["qlab manager (TUI)"]
+    end
+
+    subgraph WS ["📁 Workspace  (.qlab/)"]
+        plugins["plugins/"]
+        disks["disks/  (qcow2 overlays)"]
+        images["images/  (base cloud images)"]
+        state["state/  (PID + ports)"]
+        ssh["ssh/  (auto-generated keys)"]
+        logs["logs/  (serial console)"]
+    end
+
+    subgraph Registry ["🗂️  Plugin Registry"]
+        index["index.json"]
+        repos["GitHub repos\nqlab-plugin-*"]
+    end
+
+    subgraph VM ["🖥️  QEMU/KVM Virtual Machine(s)"]
+        qemu["QEMU process"]
+        cloudinit["cloud-init\n(auto-provisioning)"]
+        sshd["SSH daemon"]
+    end
+
+    User --> CLI
+    init -->|"creates"| WS
+    install -->|"clones from"| Registry
+    install -->|"writes to"| plugins
+    run -->|"creates overlay"| disks
+    run -->|"boots"| VM
+    cloudinit -->|"configures"| sshd
+    shell -->|"SSH tunnel"| sshd
+    manager --> CLI
+```
+
+### Typical Workflow
+
+```mermaid
+sequenceDiagram
+    actor Student
+    participant qlab as QLab CLI
+    participant ws as Workspace
+    participant reg as Registry
+    participant vm as QEMU VM
+
+    Student->>qlab: qlab init
+    qlab->>ws: create .qlab/ structure + SSH key pair
+
+    Student->>qlab: qlab install nginx-lab
+    qlab->>reg: fetch index.json
+    reg-->>qlab: git URL + version tag
+    qlab->>ws: clone plugin → plugins/nginx-lab/
+
+    Student->>qlab: qlab run nginx-lab
+    qlab->>ws: download base image (once)
+    qlab->>ws: create qcow2 overlay disk
+    qlab->>vm: launch QEMU (daemonized)
+    vm->>vm: cloud-init provisions OS + services
+    qlab-->>Student: VM ready ✓
+
+    Student->>qlab: qlab shell nginx-lab
+    qlab->>vm: SSH (passwordless, auto key)
+    vm-->>Student: interactive shell
+```
+
+---
 
 ## Features
 
-- **Plugin-based labs** — each lab is a self-contained plugin you can install, run, and share
-- **Cloud-init provisioning** — VMs boot fully configured, no manual setup
-- **Overlay disks** — copy-on-write snapshots keep base images untouched
-- **Automatic SSH keys** — passwordless login, generated per workspace
-- **Serial console or SSH** — connect via `qlab shell` or nographic console
-- **Plugin registry** — install labs from a local or remote registry
-- **Pure Bash** — no frameworks, no compilation, just shell
+| | Feature | Details |
+|---|---|---|
+| 🔌 | **Plugin-based labs** | Each lab is a self-contained plugin — install, run, share |
+| ☁️ | **Cloud-init provisioning** | VMs boot fully configured, zero manual setup |
+| 💾 | **Overlay disks** | qcow2 copy-on-write snapshots keep base images untouched |
+| 🔑 | **Auto SSH keys** | Passwordless login, generated once per workspace |
+| 🖥️ | **Serial console + SSH** | Connect via `qlab shell` or nographic console |
+| 🗂️ | **Plugin registry** | Install labs from a local or remote registry |
+| 🐚 | **Pure Bash** | No frameworks, no compilation — just shell scripts |
+| 🎛️ | **TUI manager** | Interactive menu-driven interface via `dialog` |
+
+---
 
 ## Quick Start
 
 ```bash
+# Install QLab
 curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
+
+# Create and initialize a workspace
 mkdir my-lab && cd my-lab
 qlab init
+
+# Install and run your first lab
 qlab install hello-lab
 qlab run hello-lab
+
+# Connect to the VM
+qlab shell hello-lab
 ```
 
-## Interactive Manager (TUI)
+Default VM credentials: **`labuser`** / **`labpass`** (SSH key login is automatic).
 
-QLab includes an interactive terminal interface for managing the full workflow without memorizing commands:
-
-```bash
-qlab manager
-```
-
-Requires `dialog` (`sudo apt install dialog`). The TUI lets you initialize the workspace, install and start labs from the registry, check VM status, open SSH shells, view logs, and more — all from a menu-driven interface.
-
-## Installation
-
-### From source
-
-```bash
-git clone https://github.com/manzolo/qlab.git
-cd qlab
-sudo ./install.sh
-```
-
-### Manual
-
-```bash
-git clone https://github.com/manzolo/qlab.git
-cd qlab
-sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
-export PATH="$PWD/bin:$PATH"
-```
-
-Without root, the install script falls back to a user-local install (`~/.local/bin`):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | bash
-```
-
-## Updating
-
-The install script handles updates automatically (`git pull --ff-only` if QLab is already installed). Just re-run:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
-```
-
-Or from a local clone: `git pull` inside the qlab directory.
+---
 
 ## Commands
 
@@ -85,77 +137,130 @@ Or from a local clone: `git pull` inside the qlab directory.
 | `qlab stop <name>` | Stop a running VM |
 | `qlab reset [name]` | Reset a single plugin, or the entire workspace |
 | `qlab log <name>` | Tail the VM boot log |
+| `qlab status` | Show workspace and VM status |
 | `qlab list installed` | Show installed plugins |
 | `qlab list available` | Show registry plugins |
 | `qlab ports` | Show SSH port map and detect conflicts |
-| `qlab status` | Show workspace and VM status |
 | `qlab uninstall <name>` | Remove a plugin |
 | `qlab test <name>` | Run a plugin's automated test suite |
 | `qlab manager` | Open interactive TUI (requires `dialog`) |
 
-Default VM credentials: `labuser` / `labpass`. Each lab uses overlay disks so base images are never modified. SSH keys are auto-generated per workspace for passwordless login.
+---
 
 ## Available Plugins
 
-QLab ships with a growing registry of ready-to-use lab plugins. Install any of them with `qlab install <name>`:
+Install any plugin with `qlab install <name>` or browse them all with `qlab list available`.
 
-| Plugin | Description |
-|--------|-------------|
-| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | Basic VM boot lab with cloud-init |
-| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | Nginx web server installation and configuration |
-| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | Apache web server with SSL/TLS and virtual hosts |
-| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | Docker containers and Docker Compose |
-| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | MySQL/MariaDB database management, users, and backups |
-| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | SSH hardening with fail2ban, port knocking, and key auth |
-| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | LVM with extra virtual disks for PV, VG, and LV management |
-| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | LVM & ZFS disk management with 4 extra disks per VM |
-| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | DNS & BIND9 server/client for record types and zone management |
-| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | Firewall with iptables, ufw, and traffic analysis (2 VMs) |
-| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | VPN with WireGuard and OpenVPN (server + client VMs) |
-| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | Systemd service management, unit files, timers, and journald |
-| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | DHCP server/client lab for dynamic IP addressing (2 VMs) |
-| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | LDAP with OpenLDAP, phpLDAPadmin, and client for directory services |
-| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | Mail server with Postfix and Dovecot, send/receive between 2 clients (3 VMs) |
-| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | File sharing with FTP, NFS, and Samba servers plus shared client (4 VMs) |
-| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | PAM authentication: modules, policies, 2FA, LDAP integration with sssd (3 VMs) |
-| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | PostgreSQL with pgAdmin for database management, users, and backups |
-| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | Machine Learning for network monitoring with Python and scikit-learn |
-| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | Git version control: commits, branches, merge, conflicts, stash, rebase, git flow |
+| Plugin | VMs | Description |
+|--------|:---:|-------------|
+| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | 1 | Basic VM boot lab with cloud-init |
+| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | 1 | Nginx web server installation and configuration |
+| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | 1 | Apache web server with SSL/TLS and virtual hosts |
+| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | 1 | Docker containers and Docker Compose |
+| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | 1 | MySQL/MariaDB database management, users, and backups |
+| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | 1 | PostgreSQL with pgAdmin for database management |
+| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | 1 | Git: commits, branches, merge, conflicts, stash, rebase, git flow |
+| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | 1 | Systemd service management, unit files, timers, and journald |
+| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | 1 | LVM with extra virtual disks for PV, VG, and LV management |
+| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | 1 | SSH hardening with fail2ban, port knocking, and key auth |
+| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | 1 | LVM & ZFS disk management with 4 extra disks |
+| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 2 | Firewall with iptables, ufw, and traffic analysis |
+| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 2 | VPN with WireGuard and OpenVPN (server + client) |
+| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 2 | DHCP server/client lab for dynamic IP addressing |
+| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 2 | DNS & BIND9 server/client for record types and zone management |
+| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
+| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
+| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
+| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
+| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1 | Machine Learning for network monitoring with Python/scikit-learn |
 
-List them from the CLI: `qlab list available`
+---
+
+## Plugin Architecture
+
+Every plugin is a directory with three files:
+
+```
+my-plugin/
+├── plugin.conf    # JSON metadata (name, version, description)
+├── install.sh     # Optional: runs on install (dependency checks, setup)
+└── run.sh         # Required: entry point (launches the VM)
+```
+
+Plugins source `$QLAB_ROOT/lib/*.bash` for core helpers (`start_vm`, `create_overlay`, `allocate_port`, etc.).
+
+See [doc/CREATE_PLUGIN_PROMPT.md](doc/CREATE_PLUGIN_PROMPT.md) for a step-by-step guide to building your own lab plugin.
+
+---
 
 ## Runtime Resource Overrides
 
-You can override the default RAM and disk size for any plugin at runtime using environment variables:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `QLAB_MEMORY` | VM RAM in MB | `4096` |
-| `QLAB_DISK_SIZE` | Overlay disk size | `30G` |
+Override RAM and disk size for any plugin at runtime:
 
 ```bash
 # Run docker-lab with 4 GB RAM and 30 GB disk
 QLAB_MEMORY=4096 QLAB_DISK_SIZE=30G qlab run docker-lab
 ```
 
-Priority: environment variable > `qlab.conf` (`DEFAULT_MEMORY`) > plugin default.
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `QLAB_MEMORY` | VM RAM in MB | `4096` |
+| `QLAB_DISK_SIZE` | Overlay disk size | `30G` |
 
-## Creating Your Own Plugin
+Priority: environment variable → `qlab.conf` (`DEFAULT_MEMORY`) → plugin default.
 
-See [doc/CREATE_PLUGIN_PROMPT.md](doc/CREATE_PLUGIN_PROMPT.md) for a step-by-step guide to building a new lab plugin.
+---
 
-## Plugin Structure
+## Interactive Manager (TUI)
 
-Each plugin is a directory containing:
+QLab includes a menu-driven terminal interface — no commands to memorize:
 
+```bash
+qlab manager
 ```
-my-plugin/
-├── plugin.conf    # JSON metadata (name, description, version)
-├── install.sh     # Runs on install (setup, dependency checks)
-└── run.sh         # Main entry point (lab execution)
+
+Requires `dialog` (`sudo apt install dialog`). From the TUI you can initialize workspaces, browse and install plugins from the registry, start/stop VMs, open SSH shells, and tail logs.
+
+---
+
+## Installation
+
+**One-liner (recommended):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
 ```
 
-Plugins can use QLab core functions by sourcing `$QLAB_ROOT/lib/*.bash`.
+Without root, falls back to a user-local install (`~/.local/bin`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | bash
+```
+
+**From source:**
+
+```bash
+git clone https://github.com/manzolo/qlab.git
+cd qlab
+sudo ./install.sh
+```
+
+**Manual (no install):**
+
+```bash
+git clone https://github.com/manzolo/qlab.git
+cd qlab
+sudo apt install qemu-kvm qemu-utils genisoimage git jq curl
+export PATH="$PWD/bin:$PATH"
+```
+
+## Updating
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/manzolo/qlab/main/install.sh | sudo bash
+```
+
+The install script runs `git pull --ff-only` automatically if QLab is already installed.
 
 ---
 

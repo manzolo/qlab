@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.5.1 - README Overhaul
+
+### Changed
+
+- README rewritten with Mermaid architecture diagram and sequence diagram
+- Plugin table extended with VM count column
+- Sections reorganized: How It Works → Features → Quick Start → Commands → Plugins → Plugin Architecture → Overrides → TUI → Installation
+
 ## v0.5.0 - Interactive Manager, Plugin Tests, and ml-network-lab
 
 ### Added
