@@ -122,7 +122,7 @@
   {
     "name": "cyber-lab",
     "description": "Attack/defense lab: an attacker VM and a defender VM on an internal LAN, where the attack IS the test - fail2ban bans and web hardening are proven, not assumed",
-    "version": "0.2",
+    "version": "0.3",
     "git_url": "https://github.com/manzolo/qlab-plugin-cyber-lab.git"
   }
 ]
