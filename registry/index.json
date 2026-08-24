@@ -121,8 +121,8 @@
   },
   {
     "name": "cyber-lab",
-    "description": "Attack/defense lab: an attacker VM and a defender VM on an internal LAN, where the attack IS the test - fail2ban bans and web hardening are proven, not assumed",
-    "version": "0.3",
+    "description": "Attack/defense lab: attacker + defender on an internal LAN, where the attack IS the test - fail2ban ban, web hardening (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, and mail spoofing vs SPF, all proven",
+    "version": "0.4",
     "git_url": "https://github.com/manzolo/qlab-plugin-cyber-lab.git"
   }
 ]
