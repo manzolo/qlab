@@ -121,8 +121,8 @@
   },
   {
     "name": "cyber-lab",
-    "description": "Attack/defense lab: attacker + defender on an internal LAN, where the attack IS the test - fail2ban ban, web hardening (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail spoofing rejected by SPF and DMARC (opendkim+opendmarc), and a vulnerable raw-TCP service, all proven",
-    "version": "0.6",
+    "description": "Attack/defense lab: attacker + defender on an internal LAN, where the attack IS the test - fail2ban ban, web hardening (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail spoofing rejected by SPF and DMARC (opendkim+opendmarc), a vulnerable raw-TCP service, and DKIM-signed outbound mail (full SPF/DKIM/DMARC), all proven",
+    "version": "0.7",
     "git_url": "https://github.com/manzolo/qlab-plugin-cyber-lab.git"
   }
 ]
