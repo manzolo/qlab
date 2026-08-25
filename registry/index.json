@@ -127,8 +127,8 @@
   },
   {
     "name": "systems-lab",
-    "description": "Linux Systems lab: boot, kernel, disks and recovery on a REAL VM, where the boot IS the test - a fault is seeded, the machine is power-cycled, and the serial console is the oracle that says whether it came back; seven chapters green end-to-end on real VMs: sys-01 (kernel cmdline via GRUB), sys-02 (rescue a machine that won't boot), sys-03 (sysctl live+persistent across a power-cycle, module roundtrip), sys-04 (partitions mounted by UUID surviving a reboot), sys-05 (LUKS: permissions fall to the attacker with the disk, encryption doesn't), sys-06 (persistent networking: ip(8) state evaporates, netplan/networkd comes back — address, route, DNS measured separately), sys-08 (chained faults, recovered from a powered-off machine)",
-    "version": "0.5",
+    "description": "Linux Systems lab: boot, kernel, disks and recovery on a REAL VM, where the boot IS the test - a fault is seeded, the machine is power-cycled, and the serial console is the oracle that says whether it came back; ALL EIGHT chapters green end-to-end on real VMs: sys-01 (kernel cmdline via GRUB), sys-02 (rescue a machine that won't boot), sys-03 (sysctl live+persistent across a power-cycle, module roundtrip), sys-04 (partitions mounted by UUID surviving a reboot), sys-05 (LUKS: permissions fall to the attacker with the disk, encryption doesn't), sys-06 (persistent networking: ip(8) state evaporates, netplan/networkd comes back), sys-07 (diagnose the bottleneck from live metrics BEFORE curing it), sys-08 (chained faults, recovered from a powered-off machine)",
+    "version": "0.6",
     "git_url": "https://github.com/manzolo/qlab-plugin-systems-lab.git"
   }
 ]
