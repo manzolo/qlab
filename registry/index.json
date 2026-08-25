@@ -127,8 +127,8 @@
   },
   {
     "name": "systems-lab",
-    "description": "Linux Systems lab: boot, kernel, disks and recovery on a REAL VM, where the boot IS the test - a fault is seeded, the machine is power-cycled, and the serial console is the oracle that says whether it came back; sys-02 (rescue a machine that won't boot) green end-to-end on real VMs",
-    "version": "0.1",
+    "description": "Linux Systems lab: boot, kernel, disks and recovery on a REAL VM, where the boot IS the test - a fault is seeded, the machine is power-cycled, and the serial console is the oracle that says whether it came back; MVP green end-to-end on real VMs: sys-01 (kernel cmdline via GRUB), sys-02 (rescue a machine that won't boot), sys-04 (partitions mounted by UUID surviving a reboot)",
+    "version": "0.2",
     "git_url": "https://github.com/manzolo/qlab-plugin-systems-lab.git"
   }
 ]
