@@ -133,8 +133,8 @@
   },
   {
     "name": "container-lab",
-    "description": "Container Lab: from Linux namespaces and cgroups to Docker services, on a REAL VM — a container is a process the kernel isolates, not a small VM, and every claim is measured: PID 1 inside built by hand before Docker appears, image digests immutable under the writable layer, non-root verified from the live process, data surviving container destruction only through volumes, container DNS answering only on user-defined networks",
-    "version": "0.1",
+    "description": "Container Lab: from Linux namespaces and cgroups to Docker services, on a REAL VM — a container is a process the kernel isolates, not a small VM, and every claim is measured: PID 1 inside built by hand before Docker appears, image digests immutable under the writable layer, non-root verified from the live process, data surviving container destruction only through volumes, container DNS answering only on user-defined networks, SIGTERM-deaf PID 1 vs --init told apart by the stop clock and the exit code (137 vs 143), and a capstone rebuilt from zero losing nothing",
+    "version": "0.2",
     "git_url": "https://github.com/manzolo/qlab-plugin-container-lab.git"
   }
 ]
