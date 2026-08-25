@@ -130,5 +130,11 @@
     "description": "Linux Systems lab: boot, kernel, disks and recovery on a REAL VM, where the boot IS the test - a fault is seeded, the machine is power-cycled, and the serial console is the oracle that says whether it came back; ALL EIGHT chapters green end-to-end on real VMs: sys-01 (kernel cmdline via GRUB), sys-02 (rescue a machine that won't boot), sys-03 (sysctl live+persistent across a power-cycle, module roundtrip), sys-04 (partitions mounted by UUID surviving a reboot), sys-05 (LUKS: permissions fall to the attacker with the disk, encryption doesn't), sys-06 (persistent networking: ip(8) state evaporates, netplan/networkd comes back), sys-07 (diagnose the bottleneck from live metrics BEFORE curing it), sys-08 FULL capstone (four chained faults across boot/storage/service/network, recovered from a powered-off machine, every layer surviving a final power-cycle)",
     "version": "0.7",
     "git_url": "https://github.com/manzolo/qlab-plugin-systems-lab.git"
+  },
+  {
+    "name": "container-lab",
+    "description": "Container Lab: from Linux namespaces and cgroups to Docker services, on a REAL VM — a container is a process the kernel isolates, not a small VM, and every claim is measured: PID 1 inside built by hand before Docker appears, image digests immutable under the writable layer, non-root verified from the live process, data surviving container destruction only through volumes, container DNS answering only on user-defined networks",
+    "version": "0.1",
+    "git_url": "https://github.com/manzolo/qlab-plugin-container-lab.git"
   }
 ]

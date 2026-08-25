@@ -129,6 +129,7 @@ Install any plugin with `qlab install <name>` or browse them all with `qlab list
 | [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 2 | Firewall with iptables, ufw, and traffic analysis |
 | [cyber-lab](https://github.com/manzolo/qlab-plugin-cyber-lab) | 2 | Attack/defense — the attack IS the test: fail2ban ban, vulnerable web (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail SPF/DKIM/DMARC, raw-TCP service |
 | [systems-lab](https://github.com/manzolo/qlab-plugin-systems-lab) | 1 | Linux Systems — the boot IS the test: GRUB cmdline, rescue of a broken boot, sysctl/modules, partitions by UUID, LUKS vs the attacker with the disk, persistent networking, live diagnostics, and a capstone recovered from a powered-off machine |
+| [container-lab](https://github.com/manzolo/qlab-plugin-container-lab) | 1 | Container Lab — a container is a process, measured: namespaces/cgroups by hand before Docker, image immutability, reproducible non-root builds, volumes vs the writable layer, container DNS only where it should answer |
 | [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 2 | VPN with WireGuard and OpenVPN (server + client) |
 | [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
 | [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
