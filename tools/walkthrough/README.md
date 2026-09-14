@@ -40,3 +40,11 @@ tools/walkthrough/build.py <plugin-dir> [doc] [-it] [--live] [--out FILE]
 | `![caption](img/x.png)` | a numbered figure |
 
 Everything else is ordinary Markdown: headings, tables, lists, `code`.
+
+## Writing the prose
+
+`--live` re-runs the capture, so **anything quoted in the prose can change under
+it**. Transaction ids, timestamps, PIDs and even which address the pool hands
+out will differ between runs. Describe what the block shows; do not quote values
+out of it. A sentence like "the same xid in all four packets (`0x5f0e462c`)" is
+wrong the next time somebody rebuilds the document.
