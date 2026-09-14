@@ -86,3 +86,13 @@ bash tests/test_registry_plugins.sh --no-vm  # quick test (install/uninstall onl
 - Plugin git repos are named `qlab-plugin-<name>` on GitHub
 - Plugins can provide automated tests in `tests/run_all.sh` (run via `qlab test <name>`)
 - New plugins can be generated using the prompt template in `doc/CREATE_PLUGIN_PROMPT.md`
+
+## Plugin standards (README, guide, docs, tests, releases)
+
+`doc/PLUGIN_STANDARDS.md` is the canonical convention for every plugin — follow it when writing or touching a README, guide, walkthrough, test, or release. Highlights:
+
+- **README** is a concise landing page (~40–75 lines): title + three badges (QLab, License, Walkthrough), a 2–3 sentence hook, a Quick start block, a "What's inside" table, a compact Access/Network block, and a "Learn more" section linking the deeper files. No repeated boilerplate ("How It Works", "Resetting", verbose usage) — the depth lives in `guide.md` and the walkthrough PDFs, which the README links.
+- **Guide**: one lowercase `guide.md` per plugin (never a second `GUIDE.md`).
+- **Walkthrough**: bilingual PDFs built by `tools/walkthrough/build.py` (EN default, `-it` for Italian, `--live` to re-capture); evidence committed under `docs/evidence/`; prose must not quote values that change under `--live`.
+- **Tests** (`tests/run_all.sh`): `assert_contains`/`assert_not_contains` use a here-string, never `echo | grep -q` (SIGPIPE 141 under `pipefail`); no shell globs over SSH (labuser's zsh raises `nomatch`); idempotent and self-restoring.
+- **Releases**: `plugin.conf` == registry == tag `v<version>` at HEAD and pushed (`tools/check-versions.sh`). Bump for any shipped change; publish with `tools/publish-docs.sh <name> <version>` (it no longer rewrites the README). Keep the catalogue table in this repo's README in sync (Plugin | Ver | VMs | Description), with the real VM count.

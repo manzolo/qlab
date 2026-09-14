@@ -411,6 +411,10 @@ With the naming convention:
 
 ## Rules
 
+> README structure, the guide, walkthrough docs, test conventions, versioning and
+> the catalogue all follow [`PLUGIN_STANDARDS.md`](PLUGIN_STANDARDS.md). Read it
+> before writing the README or tests.
+
 1. **Ports are always dynamic** — use `auto` for SSH and `hostfwd=tcp::0-:GUEST_PORT` for service ports. Never hardcode host ports.
 2. **Use overlay disks** — never modify the base cloud image directly
 3. **Disk size** — use `${QLAB_DISK_SIZE:-}` to let central config or user override control it. Never hardcode.
@@ -423,10 +427,10 @@ With the naming convention:
 10. **cloud-init user-data** — always include `ssh_authorized_keys` with a placeholder (e.g. `__QLAB_SSH_PUB_KEY__`) and replace it with `sed` after creation using `${QLAB_SSH_PUB_KEY:-}`. Use **quoted heredocs** (`<<'USERDATA'`) to protect MOTD color codes and VM-side commands from host expansion.
 11. **MOTD** — use `write_files` to create `/etc/motd.raw` with lab name, objectives, and useful commands. Use ANSI escape codes (e.g. `\033[1;32m`) for colors. In `runcmd`, convert it with `printf '%b\n' "$(cat /etc/motd.raw)" > /etc/motd` (the `\n` is needed because `$()` strips trailing newlines) then `rm -f /etc/motd.raw`; disable Ubuntu dynamic MOTD with `chmod -x /etc/update-motd.d/*` in `runcmd`.
 12. **Multi-VM plugins** must use `start_vm_or_fail`, `register_vm_cleanup`, and `check_host_resources`
-13. **README.md** — document objectives, credentials, and how to interact
+13. **README.md** — a concise landing page per [`PLUGIN_STANDARDS.md`](PLUGIN_STANDARDS.md): title + three badges, a 2–3 sentence hook, a Quick start block, a "What's inside" table, a compact Access/Network block, and a "Learn more" section linking `guide.md` and the walkthrough PDFs. Keep the deep content in `guide.md`; do not inline boilerplate. Ship one lowercase `guide.md` (never a second `GUIDE.md`).
 14. The plugin repo should be named `qlab-plugin-<name>` on GitHub
 15. To register the plugin, add an entry to `registry/index.json` in the main qlab repo
-16. **Automated tests** — plugins can provide a `tests/run_all.sh` script that verifies lab exercises. Run via `qlab test <name>`. The script should assume VM(s) are already running and use SSH to check expected state (services, files, configurations). Exit 0 on all-pass, non-zero on failure.
+16. **Automated tests** — plugins can provide a `tests/run_all.sh` script that verifies lab exercises. Run via `qlab test <name>`. The script should assume VM(s) are already running and use SSH to check expected state (services, files, configurations). Exit 0 on all-pass, non-zero on failure. Two rules that caused real bugs (see [`PLUGIN_STANDARDS.md`](PLUGIN_STANDARDS.md)): `assert_contains`/`assert_not_contains` must match with a **here-string** (`grep -qE "$pat" <<<"$out"`), never `echo "$out" | grep -q` — under `pipefail` that dies with SIGPIPE (141) on large inputs; and **never send a shell glob over SSH** (labuser's zsh raises `nomatch`) — use `find` or an explicit path. Tests must be idempotent and restore whatever they change.
 17. **`write_files` owner pitfall** — NEVER use `owner: labuser:labuser` (or any non-root user) in `write_files` entries. cloud-init processes `write_files` before `users_groups`, so the user does not yet exist in the filesystem and the entry fails silently, leaving the file uncreated. To write files owned by a normal user: write them to `/tmp/` (no `owner:` needed, root is fine), then in `runcmd` copy them to the target path and `chown` them after the user exists.
 18. **`sudo -u` and HOME** — when running user commands from `runcmd` (which runs as root), always use `sudo -Hu <user>` instead of `sudo -u <user>`. The `-H` flag sets `HOME` to the target user's home directory. Without `-H`, commands like `git config --global` try to write to root's home and fail with Permission denied.
 19. **`git stash push` and untracked files** — `git stash push` without `-u` only stashes tracked modifications, not untracked files. Always use `git stash push -u` when the working tree may contain untracked files, or make the file tracked first (`git add`) before stashing.
