@@ -130,16 +130,16 @@ Install any plugin with `qlab install <name>` or browse them all with `qlab list
 | [cyber-lab](https://github.com/manzolo/qlab-plugin-cyber-lab) | 0.9 | 2 | Attack/defense — the attack IS the test: fail2ban ban, vulnerable web (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail SPF/DKIM/DMARC, raw-TCP service |
 | [systems-lab](https://github.com/manzolo/qlab-plugin-systems-lab) | 0.9 | 1 | Linux Systems — the boot IS the test: GRUB cmdline, rescue of a broken boot, sysctl/modules, partitions by UUID, LUKS vs the attacker with the disk, persistent networking, live diagnostics, and a capstone recovered from a powered-off machine |
 | [container-lab](https://github.com/manzolo/qlab-plugin-container-lab) | 0.5 | 1 | Container Lab — a container is a process, measured: namespaces/cgroups by hand before Docker, image immutability, reproducible non-root builds, volumes vs the writable layer, container DNS only where it should answer |
-| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 1.7 | 2 | VPN with WireGuard and OpenVPN (server + client) |
-| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 1.8 | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
-| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 1.9 | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
+| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 1.8 | 2 | VPN with WireGuard and OpenVPN (server + client) |
+| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 1.9 | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
+| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 1.10 | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
 | **🔌 Networking** | | | |
-| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 1.8 | 2 | DHCP server/client lab for dynamic IP addressing |
+| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 1.9 | 2 | DHCP server/client lab for dynamic IP addressing |
 | [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 1.8 | 2 | DNS & BIND9 server/client for record types and zone management |
 | [pxe-lab](https://github.com/manzolo/qlab-plugin-pxe-lab) | 1.1 | 2 | PXE/netboot — a diskless client with no OS installs Debian, Ubuntu or Windows over the network: DHCP options 66/67/93/175, TFTP vs HTTP, iPXE chainload, preseed / autoinstall / WinPE+DISM |
 | **📬 Services** | | | |
-| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 1.8 | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
-| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 1.7 | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
+| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 1.9 | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
+| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 1.8 | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
 | **🤖 Advanced** | | | |
 | [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1.4 | 1 | Machine Learning for network monitoring with Python/scikit-learn |
 
