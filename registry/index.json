@@ -62,7 +62,7 @@
   {
     "name": "vpn-lab",
     "description": "VPN lab with WireGuard and OpenVPN using server and client VMs",
-    "version": "1.5",
+    "version": "1.6",
     "git_url": "https://github.com/manzolo/qlab-plugin-vpn-lab.git"
   },
   {
@@ -80,7 +80,7 @@
   {
     "name": "ldap-lab",
     "description": "LDAP lab with OpenLDAP server, phpLDAPadmin, and client for directory services",
-    "version": "1.6",
+    "version": "1.7",
     "git_url": "https://github.com/manzolo/qlab-plugin-ldap-lab.git"
   },
   {
