@@ -2,7 +2,7 @@
   {
     "name": "hello-lab",
     "description": "Basic VM boot lab with cloud-init",
-    "version": "1.4",
+    "version": "1.5",
     "git_url": "https://github.com/manzolo/qlab-plugin-hello-lab.git"
   },
   {
@@ -44,7 +44,7 @@
   {
     "name": "lvm-lab",
     "description": "LVM lab with extra virtual disks for PV, VG, and LV management",
-    "version": "1.5",
+    "version": "1.6",
     "git_url": "https://github.com/manzolo/qlab-plugin-lvm-lab.git"
   },
   {
@@ -68,7 +68,7 @@
   {
     "name": "systemd-lab",
     "description": "Systemd lab for service management, unit files, timers, and journald",
-    "version": "1.5",
+    "version": "1.6",
     "git_url": "https://github.com/manzolo/qlab-plugin-systemd-lab.git"
   },
   {
