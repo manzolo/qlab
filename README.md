@@ -106,42 +106,42 @@ Default VM credentials: **`labuser`** / **`labpass`** (SSH key login is automati
 
 Install any plugin with `qlab install <name>` or browse them all with `qlab list available`.
 
-| Plugin | VMs | Description |
-|--------|:---:|-------------|
-| **🚀 Getting started** | | |
-| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | 1 | Basic VM boot lab with cloud-init |
-| **🌐 Web servers** | | |
-| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | 1 | Nginx web server installation and configuration |
-| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | 1 | Apache web server with SSL/TLS and virtual hosts |
-| **🗄️ Databases** | | |
-| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | 1 | MySQL/MariaDB database management, users, and backups |
-| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | 1 | PostgreSQL with pgAdmin for database management |
-| **📦 Containers & DevOps** | | |
-| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | 1 | Docker containers and Docker Compose |
-| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | 1 | Git: commits, branches, merge, conflicts, stash, rebase, git flow |
-| **💾 Storage** | | |
-| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | 1 | LVM with extra virtual disks for PV, VG, and LV management |
-| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | 1 | LVM & ZFS disk management with 4 extra disks |
-| **⚙️ System** | | |
-| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | 1 | Systemd service management, unit files, timers, and journald |
-| **🔒 Security & authentication** | | |
-| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | 1 | SSH hardening with fail2ban, port knocking, and key auth |
-| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 2 | Firewall with iptables, ufw, and traffic analysis |
-| [cyber-lab](https://github.com/manzolo/qlab-plugin-cyber-lab) | 2 | Attack/defense — the attack IS the test: fail2ban ban, vulnerable web (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail SPF/DKIM/DMARC, raw-TCP service |
-| [systems-lab](https://github.com/manzolo/qlab-plugin-systems-lab) | 1 | Linux Systems — the boot IS the test: GRUB cmdline, rescue of a broken boot, sysctl/modules, partitions by UUID, LUKS vs the attacker with the disk, persistent networking, live diagnostics, and a capstone recovered from a powered-off machine |
-| [container-lab](https://github.com/manzolo/qlab-plugin-container-lab) | 1 | Container Lab — a container is a process, measured: namespaces/cgroups by hand before Docker, image immutability, reproducible non-root builds, volumes vs the writable layer, container DNS only where it should answer |
-| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 2 | VPN with WireGuard and OpenVPN (server + client) |
-| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
-| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
-| **🔌 Networking** | | |
-| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 2 | DHCP server/client lab for dynamic IP addressing |
-| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 2 | DNS & BIND9 server/client for record types and zone management |
-| [pxe-lab](https://github.com/manzolo/qlab-plugin-pxe-lab) | 2 | PXE/netboot — a diskless client with no OS installs Debian, Ubuntu or Windows over the network: DHCP options 66/67/93/175, TFTP vs HTTP, iPXE chainload, preseed / autoinstall / WinPE+DISM |
-| **📬 Services** | | |
-| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
-| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
-| **🤖 Advanced** | | |
-| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1 | Machine Learning for network monitoring with Python/scikit-learn |
+| Plugin | Ver | VMs | Description |
+|--------|:---:|:---:|-------------|
+| **🚀 Getting started** | | | |
+| [hello-lab](https://github.com/manzolo/qlab-plugin-hello-lab) | 1.6 | 1 | Basic VM boot lab with cloud-init |
+| **🌐 Web servers** | | | |
+| [nginx-lab](https://github.com/manzolo/qlab-plugin-nginx-lab) | 1.9 | 1 | Nginx web server installation and configuration |
+| [apache-lab](https://github.com/manzolo/qlab-plugin-apache-lab) | 1.8 | 1 | Apache web server with SSL/TLS and virtual hosts |
+| **🗄️ Databases** | | | |
+| [mysql-lab](https://github.com/manzolo/qlab-plugin-mysql-lab) | 1.9 | 1 | MySQL/MariaDB database management, users, and backups |
+| [postgres-lab](https://github.com/manzolo/qlab-plugin-postgres-lab) | 1.10 | 1 | PostgreSQL with pgAdmin for database management |
+| **📦 Containers & DevOps** | | | |
+| [docker-lab](https://github.com/manzolo/qlab-plugin-docker-lab) | 1.8 | 1 | Docker containers and Docker Compose |
+| [git-lab](https://github.com/manzolo/qlab-plugin-git-lab) | 1.6 | 1 | Git: commits, branches, merge, conflicts, stash, rebase, git flow |
+| **💾 Storage** | | | |
+| [lvm-lab](https://github.com/manzolo/qlab-plugin-lvm-lab) | 1.7 | 1 | LVM with extra virtual disks for PV, VG, and LV management |
+| [raid-lab](https://github.com/manzolo/qlab-plugin-raid-lab) | 1.8 | 2 | LVM & ZFS disk management with 4 extra disks |
+| **⚙️ System** | | | |
+| [systemd-lab](https://github.com/manzolo/qlab-plugin-systemd-lab) | 1.7 | 1 | Systemd service management, unit files, timers, and journald |
+| **🔒 Security & authentication** | | | |
+| [ssh-lab](https://github.com/manzolo/qlab-plugin-ssh-lab) | 2.7 | 2 | SSH hardening with fail2ban, port knocking, and key auth |
+| [firewall-lab](https://github.com/manzolo/qlab-plugin-firewall-lab) | 1.10 | 2 | Firewall with iptables, ufw, and traffic analysis |
+| [cyber-lab](https://github.com/manzolo/qlab-plugin-cyber-lab) | 0.9 | 2 | Attack/defense — the attack IS the test: fail2ban ban, vulnerable web (RCE/XSS/traversal), the blind filter, the Docker/FORWARD trap, mail SPF/DKIM/DMARC, raw-TCP service |
+| [systems-lab](https://github.com/manzolo/qlab-plugin-systems-lab) | 0.9 | 1 | Linux Systems — the boot IS the test: GRUB cmdline, rescue of a broken boot, sysctl/modules, partitions by UUID, LUKS vs the attacker with the disk, persistent networking, live diagnostics, and a capstone recovered from a powered-off machine |
+| [container-lab](https://github.com/manzolo/qlab-plugin-container-lab) | 0.5 | 1 | Container Lab — a container is a process, measured: namespaces/cgroups by hand before Docker, image immutability, reproducible non-root builds, volumes vs the writable layer, container DNS only where it should answer |
+| [vpn-lab](https://github.com/manzolo/qlab-plugin-vpn-lab) | 1.7 | 2 | VPN with WireGuard and OpenVPN (server + client) |
+| [ldap-lab](https://github.com/manzolo/qlab-plugin-ldap-lab) | 1.8 | 2 | LDAP with OpenLDAP, phpLDAPadmin, and client |
+| [pam-lab](https://github.com/manzolo/qlab-plugin-pam-lab) | 1.9 | 3 | PAM authentication: modules, policies, 2FA, LDAP integration |
+| **🔌 Networking** | | | |
+| [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 1.8 | 2 | DHCP server/client lab for dynamic IP addressing |
+| [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 1.8 | 2 | DNS & BIND9 server/client for record types and zone management |
+| [pxe-lab](https://github.com/manzolo/qlab-plugin-pxe-lab) | 1.1 | 2 | PXE/netboot — a diskless client with no OS installs Debian, Ubuntu or Windows over the network: DHCP options 66/67/93/175, TFTP vs HTTP, iPXE chainload, preseed / autoinstall / WinPE+DISM |
+| **📬 Services** | | | |
+| [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 1.8 | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
+| [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 1.7 | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |
+| **🤖 Advanced** | | | |
+| [ml-network-lab](https://github.com/manzolo/qlab-plugin-ml-network-lab) | 1.4 | 1 | Machine Learning for network monitoring with Python/scikit-learn |
 
 ---
 
