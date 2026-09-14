@@ -201,13 +201,19 @@ def render_cover(meta, strings):
 # --------------------------------------------------------------------------- #
 # main
 # --------------------------------------------------------------------------- #
-def capture_live(plugin_dir, cfg, workspace):
-    """Re-run the evidence commands against the running lab."""
+def capture_live(plugin_dir, cfg, workspace, only=None):
+    """Re-run the evidence commands against the running lab.
+
+    `only` restricts the capture to a comma-separated list of evidence ids —
+    handy when one block needs a retake and the rest are already good.
+    """
     docs_dir = os.path.join(plugin_dir, "docs")
     os.makedirs(os.path.join(docs_dir, "evidence"), exist_ok=True)
     qlab = shutil.which("qlab") or "qlab"
     for item in cfg.get("evidence", []) or []:
         eid, vm, cmd = item["id"], item.get("vm"), item["cmd"]
+        if only and eid not in only:
+            continue
         if vm:
             argv = [qlab, "shell", vm, "--no-wait", "-c", cmd]
         else:
@@ -233,6 +239,7 @@ def main():
     ap.add_argument("--lang", default="en")
     ap.add_argument("--live", action="store_true",
                     help="re-capture evidence from the running lab first")
+    ap.add_argument("--only", help="with --live: re-capture only these evidence ids (comma-separated)")
     ap.add_argument("--workspace", default=".",
                     help="directory holding .qlab (for --live)")
     ap.add_argument("--out")
@@ -251,7 +258,8 @@ def main():
 
     if a.live:
         print("Capturing evidence from the running lab...")
-        capture_live(plugin_dir, cfg, os.path.abspath(a.workspace))
+        only = set(x.strip() for x in a.only.split(",")) if a.only else None
+        capture_live(plugin_dir, cfg, os.path.abspath(a.workspace), only)
 
     src = os.path.join(docs_dir, "%s.%s.md" % (a.doc, lang))
     fallback = False
