@@ -60,7 +60,6 @@ Future plugin labs to implement for QLab. Grouped by topic area.
 |--------|-------------|
 | `cluster-lab` | HA cluster with Pacemaker/Corosync, failover |
 | `k8s-lab` | Minimal Kubernetes: 1 control plane + 1 worker (k3s) |
-| `pxe-lab` | PXE boot: TFTP + DHCP, network install |
 
 ## Implementation Priority
 

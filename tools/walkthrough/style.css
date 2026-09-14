@@ -1,0 +1,93 @@
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm 16mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font: 8pt "DejaVu Sans", sans-serif; color: #8a8f98;
+  }
+  @bottom-left  { content: string(doctitle); font: 8pt "DejaVu Sans", sans-serif; color: #8a8f98; }
+}
+@page :first { @bottom-left { content: ""; } @bottom-center { content: ""; } }
+
+html { font-size: 10.5pt; }
+body {
+  font-family: "DejaVu Sans", sans-serif;
+  color: #1c1f24; line-height: 1.5; margin: 0;
+  hyphens: none;
+}
+code, pre, .mono { font-family: "DejaVu Sans Mono", monospace; }
+
+/* ---- cover ---- */
+.cover { page-break-after: always; padding-top: 42mm; }
+.cover .kicker { font-size: 9.5pt; letter-spacing: .18em; text-transform: uppercase; color: #7a4dd4; font-weight: 700; }
+.cover h1 { font-size: 30pt; line-height: 1.12; margin: 8mm 0 4mm; font-weight: 700; letter-spacing: -.015em; }
+.cover .sub { font-size: 13pt; color: #4a5058; margin-bottom: 14mm; max-width: 135mm; }
+.cover .meta { font-size: 9pt; color: #6a7079; border-top: 1.5px solid #e2e4e8; padding-top: 4mm; }
+.cover .meta b { color: #1c1f24; font-weight: 600; }
+
+h1 { string-set: doctitle content(); }
+h2 {
+  font-size: 15pt; margin: 7mm 0 3mm; padding-bottom: 1.5mm;
+  border-bottom: 2px solid #7a4dd4; font-weight: 700; letter-spacing: -.01em;
+  page-break-after: avoid;
+}
+h3 { font-size: 11.5pt; margin: 6mm 0 2mm; font-weight: 700; color: #2d323a; page-break-after: avoid; }
+p { margin: 0 0 3mm; }
+ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+li { margin-bottom: 1.2mm; }
+
+.lead { font-size: 11pt; color: #3a4048; border-left: 3px solid #7a4dd4; padding-left: 4mm; margin-bottom: 5mm; }
+
+pre {
+  background: #1a1d23; color: #dfe3ea; padding: 3mm 4mm; border-radius: 2mm;
+  font-size: 7.6pt; line-height: 1.42; overflow-wrap: break-word; white-space: pre-wrap;
+  margin: 0 0 4mm;
+  /* A long terminal dump may cross a page. Keeping it whole pushes it wholesale
+     to the next page and leaves a third of the previous one empty. */
+  orphans: 4; widows: 4;
+}
+pre.sh { background: #f4f5f7; color: #1c1f24; border-left: 3px solid #7a4dd4; border-radius: 0 2mm 2mm 0; }
+pre b { color: #ffd479; font-weight: 600; }
+pre i { color: #7fd4a0; font-style: normal; }
+code { background: #f0f1f4; padding: .3mm 1mm; border-radius: .8mm; font-size: 8.6pt; }
+
+figure { margin: 0 0 5mm; page-break-inside: avoid; }
+figure img { width: 100%; border: 1px solid #cfd3da; border-radius: 1.5mm; display: block; }
+figcaption { font-size: 8.4pt; color: #5a6069; margin-top: 1.8mm; line-height: 1.4; }
+figcaption b { color: #7a4dd4; font-weight: 700; }
+
+.note {
+  background: #f7f4fd; border: 1px solid #ddd2f5; border-left: 3px solid #7a4dd4;
+  padding: 3mm 4mm; border-radius: 0 2mm 2mm 0; margin: 0 0 4mm; font-size: 9.4pt;
+  page-break-inside: avoid;
+}
+.note .t { font-weight: 700; color: #5b32ad; display: block; margin-bottom: 1mm; }
+.warn { background: #fdf6f2; border-color: #f3ddcd; border-left-color: #d2762c; }
+.warn .t { color: #a8551a; }
+
+table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 0 0 4mm; page-break-inside: avoid; }
+th { text-align: left; background: #f4f5f7; font-weight: 700; font-size: 8.4pt;
+     text-transform: uppercase; letter-spacing: .04em; color: #4a5058; }
+th, td { border: 1px solid #e2e4e8; padding: 1.6mm 2.4mm; vertical-align: top; }
+td.mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8.2pt; }
+
+.step { color: #7a4dd4; font-weight: 700; }
+.chain { font-size: 8.4pt; text-align: center; background: #f4f5f7; padding: 3mm; border-radius: 2mm; margin-bottom: 4mm; }
+
+/* --- added for the generated documents --- */
+blockquote { margin: 0 0 4mm; padding-left: 4mm; border-left: 3px solid #d6dae1; color: #4a5058; }
+hr { border: 0; border-top: 1px solid #e2e4e8; margin: 6mm 0; }
+a { color: #5b32ad; text-decoration: none; }
+.figcount { counter-reset: figure; }
+h2 + p, h3 + p { margin-top: 0; }
+pre.sh::before { content: "$ "; color: #7a4dd4; font-weight: 700; }
+pre.sh.nodollar::before { content: ""; }
+table td p:last-child { margin-bottom: 0; }
+.toc { font-size: 9.5pt; }
+.toc li { margin-bottom: 1.6mm; }
+
+/* A fenced block becomes <pre><code>: the inline-code skin must not apply
+   inside it, or you get light text on a light background. */
+pre code { background: none; color: inherit; padding: 0; font-size: inherit;
+           border-radius: 0; white-space: pre-wrap; }
+td code, th code { white-space: nowrap; }

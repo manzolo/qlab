@@ -136,6 +136,7 @@ Install any plugin with `qlab install <name>` or browse them all with `qlab list
 | **🔌 Networking** | | |
 | [dhcp-lab](https://github.com/manzolo/qlab-plugin-dhcp-lab) | 2 | DHCP server/client lab for dynamic IP addressing |
 | [dns-lab](https://github.com/manzolo/qlab-plugin-dns-lab) | 2 | DNS & BIND9 server/client for record types and zone management |
+| [pxe-lab](https://github.com/manzolo/qlab-plugin-pxe-lab) | 2 | PXE/netboot — a diskless client with no OS installs Debian, Ubuntu or Windows over the network: DHCP options 66/67/93/175, TFTP vs HTTP, iPXE chainload, preseed / autoinstall / WinPE+DISM |
 | **📬 Services** | | |
 | [mail-lab](https://github.com/manzolo/qlab-plugin-mail-lab) | 3 | Mail server with Postfix and Dovecot (server + 2 clients) |
 | [filesharing-lab](https://github.com/manzolo/qlab-plugin-filesharing-lab) | 4 | File sharing with FTP, NFS, and Samba (3 servers + client) |

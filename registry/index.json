@@ -136,5 +136,11 @@
     "description": "Container Lab: from Linux namespaces and cgroups to a safely run multi-service Docker system, on a REAL VM — a container is a process the kernel isolates, not a small VM, and every claim is measured: namespaces/cgroups by hand before Docker, image immutability, reproducible non-root builds, SIGTERM-deaf PID 1 vs --init (137 vs 143), volumes vs the writable layer, container DNS only on user-defined networks, Compose (depends_on gives start not readiness), security proven by running the forbidden op (cap-drop, read-only, privileged), a registry's anonymous-push hole reproduced (the 2026-08-15 incident), and a Compose capstone with a reverse proxy rebuilt from zero",
     "version": "0.3",
     "git_url": "https://github.com/manzolo/qlab-plugin-container-lab.git"
+  },
+  {
+    "name": "pxe-lab",
+    "description": "PXE/netboot lab: a diskless client installs Debian, Ubuntu or Windows over the network",
+    "version": "1.0",
+    "git_url": "https://github.com/manzolo/qlab-plugin-pxe-lab.git"
   }
 ]
