@@ -38,7 +38,7 @@
   {
     "name": "docker-lab",
     "description": "Docker containers and Docker Compose lab",
-    "version": "1.6",
+    "version": "1.7",
     "git_url": "https://github.com/manzolo/qlab-plugin-docker-lab.git"
   },
   {
@@ -50,7 +50,7 @@
   {
     "name": "mysql-lab",
     "description": "MySQL/MariaDB lab with phpMyAdmin for database management, users, and backups",
-    "version": "1.7",
+    "version": "1.8",
     "git_url": "https://github.com/manzolo/qlab-plugin-mysql-lab.git"
   },
   {
@@ -104,7 +104,7 @@
   {
     "name": "postgres-lab",
     "description": "PostgreSQL lab with pgAdmin for database management, users, and backups",
-    "version": "1.8",
+    "version": "1.9",
     "git_url": "https://github.com/manzolo/qlab-plugin-postgres-lab.git"
   },
   {
